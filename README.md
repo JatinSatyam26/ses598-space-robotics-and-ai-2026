@@ -22,7 +22,7 @@ All assignments use industry-standard tools including ROS2, Gazebo simulation, P
 
 ### New to the Course? Having issues? 
 - **[Quick Start Guide](QUICK_START.md)** - Get up and running in 15 minutes
-- **[Troubleshooting Guide](TROUBLESHOOTING.md)** - Solutions to common issues, check this first when facing issues. It contains solutions to 50+ common issues organized by category.
+- **[Troubleshooting Guide](TROUBLESHOOTING.md)** - Solutions to common issues, check this first when stuck. It contains solutions to 50+ common issues organized by category.
 
 ## 🗂️ Repository Structure
 
