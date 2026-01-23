@@ -32,9 +32,10 @@ If you encounter problems during setup or execution, check the **[Troubleshootin
 ```
 ses598-space-robotics-and-ai-2026/
 ├── assignments/               # Course assignments
-│   ├── first_order_boustrophedon_navigator/
-│   ├── cart_pole_optimal_control/
-│   └── terrain_mapping_drone_control/
+│   ├── least_squares_and_probability_theory/  # Assignment 0
+│   ├── first_order_boustrophedon_navigator/   # Assignment 1
+│   ├── cart_pole_optimal_control/             # Assignment 2
+│   └── terrain_mapping_drone_control/         # Assignment 3
 ├── lectures/                  # Lecture materials and slides
 ├── samples/                   # Sample code and demonstrations
 │   ├── dreams_robot_control/
@@ -46,6 +47,27 @@ ses598-space-robotics-and-ai-2026/
 ```
 
 ## 🎯 Assignments
+
+### Assignment 0: Least Squares and Probability Theory
+**Topics:** Least Squares Estimation, Maximum Likelihood Estimation, Probability Theory
+
+**Points:** Not graded (0 points) - *Optional but recommended*
+
+This foundational assignment introduces core mathematical concepts used throughout the course. Students apply least squares estimation to determine the Pacific Plate's velocity using volcanic island age and distance data. While not graded, completing this assignment demonstrates mastery of fundamental estimation theory and may be considered in final grade determinations if needed.
+
+**Key Skills:**
+- Least squares parameter estimation
+- Maximum likelihood estimation
+- Statistical analysis and interpretation
+- Data-driven modeling
+- Uncertainty quantification
+
+**Assignment Materials:**
+- 📄 [Assignment PDF](assignments/least_squares_and_probability_theory/SES598_2026_Assignment0_least_squares_probability_theory.pdf)
+- 📊 [Volcanoes Dataset](assignments/least_squares_and_probability_theory/volcanoes_data_ses598_2026.csv)
+- 📖 [Lecture Notes](assignments/least_squares_and_probability_theory/SES598_2026_notes_least_squares_MLE-1-1.pdf)
+
+---
 
 ### Assignment 1: First-Order Boustrophedon Navigator
 **Topics:** PD Control, Trajectory Tracking, Coverage Path Planning
@@ -261,6 +283,7 @@ This course builds upon:
 
 **Ready to begin?** 
 - 🚀 New students: Start with the [Quick Start Guide](QUICK_START.md)
+- 📐 Review fundamentals: [Assignment 0: Least Squares & Probability](assignments/least_squares_and_probability_theory/)
 - 📚 Jump to [Assignment 1: Boustrophedon Navigator](assignments/first_order_boustrophedon_navigator/README.md)
 - 💻 Explore the [sample code](samples/)
 - 🔧 Having issues? Check the [Troubleshooting Guide](TROUBLESHOOTING.md)
