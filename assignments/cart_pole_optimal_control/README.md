@@ -122,8 +122,7 @@ pip3 install numpy scipy control
 cd ~/RAS-SES-598-Space-Robotics-and-AI
 
 # Add the original repository as upstream (if not already done)
-git remote add upstream https://github.com/DREAMS-lab/RAS-SES-598-Space-Robotics-and-AI.git
-
+git remote add upstream https://github.com/DREAMS-lab/ses598-space-robotics-and-ai-2026
 # Fetch the latest changes from upstream
 git fetch upstream
 
@@ -139,21 +138,21 @@ git push origin main
 
 #### If you don't have a fork yet:
 1. Fork the course repository:
-   - Visit: https://github.com/DREAMS-lab/RAS-SES-598-Space-Robotics-and-AI
+   - Visit: https://github.com/DREAMS-lab/ses598-space-robotics-and-ai-2026
    - Click "Fork" in the top-right corner
    - Select your GitHub account as the destination
 
 2. Clone your fork:
 ```bash
 cd ~/
-git clone https://github.com/YOUR_USERNAME/RAS-SES-598-Space-Robotics-and-AI.git
+git clone https://github.com/YOUR_USERNAME/ses598-space-robotics-and-ai-2026
 ```
 
 ### Create Symlink to ROS2 Workspace
 ```bash
 # Create symlink in your ROS2 workspace
 cd ~/ros2_ws/src
-ln -s ~/RAS-SES-598-Space-Robotics-and-AI/assignments/cart_pole_optimal_control .
+ln -s ~/ses598-space-robotics-and-ai-2026/assignments/cart_pole_optimal_control .
 ```
 
 ### Building and Running
