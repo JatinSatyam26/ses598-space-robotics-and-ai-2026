@@ -208,4 +208,7 @@ Create and implement a custom ROS2 message type to publish detailed performance 
 This will demonstrate understanding of:
 - ROS2 message definitions
 - Custom interface creation
-- Message publishing patterns 
+- Message publishing patterns
+
+## Acknowledgements: Aldrin Inbaraj A, Arizona State University. 
+
