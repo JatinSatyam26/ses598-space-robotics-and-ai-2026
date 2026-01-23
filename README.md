@@ -45,7 +45,7 @@ ses598-space-robotics-and-ai-2026/
 ### Assignment 0: Least Squares and Probability Theory
 **Topics:** Least Squares Estimation, Maximum Likelihood Estimation, Probability Theory
 
-**Points:** Not graded (0 points) - *Optional but recommended*
+**Points:** 100, does not count towards grade - *Optional but recommended*
 
 This foundational assignment introduces core mathematical concepts used throughout the course. Students apply least squares estimation to determine the Pacific Plate's velocity using volcanic island age and distance data. While not graded, completing this assignment demonstrates mastery of fundamental estimation theory and may be considered in final grade determinations if needed.
 
@@ -65,6 +65,7 @@ This foundational assignment introduces core mathematical concepts used througho
 
 ### Assignment 1: First-Order Boustrophedon Navigator
 **Topics:** PD Control, Trajectory Tracking, Coverage Path Planning
+**Points:** 100 
 
 <img width="488" height="529" alt="Boustrophedon Pattern" src="https://github.com/user-attachments/assets/100a2f14-7dde-4dd2-b730-a1d65d6cc49c" />
 
@@ -82,6 +83,8 @@ Students tune a PD controller to execute precise lawnmower survey patterns (bous
 
 ### Assignment 2: Cart-Pole Optimal Control
 **Topics:** LQR Control, System Dynamics, Reinforcement Learning
+**Points:** 100 
+
 <img width="1069" height="1069" alt="Cart pole System Gazebo view" src="https://github.com/user-attachments/assets/9b8e438e-5cff-4679-abdb-c42d7b31a01d" />
 <img src="https://github.com/user-attachments/assets/c8591475-3676-4cdf-8b4a-6539e5a2325f" alt="Cart-Pole System Rviz view" width="500"/>
 
@@ -99,6 +102,7 @@ Students analyze and tune an LQR controller for an inverted pendulum (cart-pole)
 
 ### Assignment 3: Rocky Times Challenge - Search, Map, & Analyze
 **Topics:** Autonomous Drones, Computer Vision, SLAM, PX4 Control
+**Points:** 100 
 
 <img src="https://github.com/user-attachments/assets/6e3d9610-a63a-4949-88a1-a14166a9ed50" alt="Terrain Mapping Challenge" width="500"/>
 
