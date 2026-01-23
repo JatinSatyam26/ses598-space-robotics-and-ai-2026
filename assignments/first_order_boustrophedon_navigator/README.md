@@ -175,6 +175,7 @@ Add these topics:
    - Submit the URL of your GitHub repository
    - Ensure your repository is public
    - Final commit should be before the deadline
+<img width="1210" height="1098" alt="image" src="https://github.com/user-attachments/assets/f1eeb837-3728-4d3f-aec2-e3acad7b10f2" />
 
 ## Tips for Success
 - Start with low gains and increase gradually
