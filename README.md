@@ -39,7 +39,7 @@ ses598-space-robotics-and-ai-2026/
 ### Assignment 1: First-Order Boustrophedon Navigator
 **Topics:** PD Control, Trajectory Tracking, Coverage Path Planning
 
-<img src="https://github.com/user-attachments/assets/940fc6bc-fcee-4d11-8bc8-d53a650aaf80" alt="Boustrophedon Pattern" width="500"/>
+<img width="488" height="529" alt="Boustrophedon Pattern" src="https://github.com/user-attachments/assets/100a2f14-7dde-4dd2-b730-a1d65d6cc49c" />
 
 Students tune a PD controller to execute precise lawnmower survey patterns (boustrophedon) using the ROS2 Turtlesim. This fundamental pattern is used in space exploration, precision agriculture, and search-and-rescue operations.
 
