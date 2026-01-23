@@ -1,5 +1,7 @@
 # First-Order Boustrophedon Navigator
-<img width="488" height="529" alt="Boustrophedon Pattern" src="https://github.com/user-attachments/assets/332b2eee-8721-4475-9716-35203dc5ebba" />
+<img width="503" height="536" alt="Bad Boustrophedon Pattern" src="https://github.com/user-attachments/assets/5f6404fa-77f5-419f-80b2-93810108a7e7" />
+
+<img width="488" height="529" alt="Good Boustrophedon Pattern" src="https://github.com/user-attachments/assets/332b2eee-8721-4475-9716-35203dc5ebba" />
 
 In this assignment, you will understand the provided code in ROS2 with Turtlesim, and refactor and/or tune the navigator to implement a precise lawnmower survey (a boustrophedon pattern). The current code will do a pattern shown above, which is not a uniform lawnmower survey. 
 Explore literature on how lawnmower surveys typically look, and modify the code to meet the requirements for a uniform survey. 
