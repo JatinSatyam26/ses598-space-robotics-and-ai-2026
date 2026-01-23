@@ -9,7 +9,6 @@ This foundational assignment introduces core mathematical concepts that underpin
 By completing this assignment, students will:
 
 1. **Apply Least Squares Estimation**: Use least squares methods to estimate parameters from noisy data
-2. **Understand Maximum Likelihood Estimation (MLE)**: Connect probabilistic models to estimation problems
 3. **Analyze Real-World Data**: Work with geological data to solve a practical estimation problem
 4. **Quantify Uncertainty**: Compute and interpret estimation uncertainty
 5. **Validate Models**: Assess model fit and residual analysis
@@ -43,20 +42,18 @@ Your task is to:
 2. **volcanoes_data_ses598_2026.csv**
    - Dataset containing volcanic island information
    - Columns: island name, age (millions of years), distance from hotspot (km)
-   - Ready to use with Python/MATLAB/R
+   - Ready to use with Python
 
 3. **SES598_2026_notes_least_squares_MLE-1-1.pdf**
    - Lecture notes on least squares estimation
    - Maximum likelihood estimation theory
-   - Probability theory foundations
-   - Worked examples
-
+   
 ## Getting Started
 
 ### Prerequisites
 
 **Software:**
-- Python 3.8+ (recommended) OR MATLAB OR R
+- Python 3.8+ (recommended) 
 - NumPy, Matplotlib, Pandas (for Python)
 - Jupyter Notebook (optional but recommended)
 
@@ -305,10 +302,8 @@ While not graded, evaluate your work on:
 
 ### Where to Get Help:
 - Office hours (Fri, 11a-12p, Zoom and Walton Center)
-- Canvas and Slack 
-- Study groups with classmates
-- Course website FAQs
-
+- Canvas and Slack
+  
 ## Why This Assignment Matters
 
 Estimation theory is fundamental to robotics and AI:
