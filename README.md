@@ -297,7 +297,7 @@ This course builds upon:
 - ROS2 and the Open Robotics community
 - PX4 Autopilot project
 - MIT's Underactuated Robotics course materials
-- The broader robotics and space exploration research community
+- Aldrin Inbaraj A.'s solutions from 2025 version of the course. 
 
 ---
 
