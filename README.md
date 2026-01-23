@@ -2,7 +2,7 @@
 
 [![License: CC BY 4.0](https://img.shields.io/badge/License-CC%20BY%204.0-lightgrey.svg)](http://creativecommons.org/licenses/by/4.0/)
 
-This repository contains course materials, assignments, and sample code for **SES 598: Space Robotics and AI** taught at Arizona State University by the [DREAMS Lab](https://deepgis.org/dreamslab/).
+This repository contains course materials and assignments for **SES 598: Space Robotics and AI** taught at Arizona State University by the [DREAMS Lab](https://deepgis.org/dreamslab/).
 
 **Course Website:** [https://deepgis.org/dreamslab/ses598/](https://deepgis.org/dreamslab/ses598/)
 
@@ -32,14 +32,11 @@ If you encounter problems during setup or execution, check the **[Troubleshootin
 ```
 ses598-space-robotics-and-ai-2026/
 ├── assignments/               # Course assignments
-│   ├── least_squares_and_probability_theory/  # Assignment 0
+│   ├── least_squares_and_probability_theory/  # Assignment 0 (optional)
 │   ├── first_order_boustrophedon_navigator/   # Assignment 1
 │   ├── cart_pole_optimal_control/             # Assignment 2
 │   └── terrain_mapping_drone_control/         # Assignment 3
 ├── lectures/                  # Lecture materials and slides
-├── samples/                   # Sample code and demonstrations
-│   ├── dreams_robot_control/
-│   └── dreams_stereo/
 ├── QUICK_START.md            # Fast-track setup guide
 ├── TROUBLESHOOTING.md        # Common issues and solutions
 ├── LICENSE
@@ -283,7 +280,6 @@ This course builds upon:
 
 **Ready to begin?** 
 - 🚀 New students: Start with the [Quick Start Guide](QUICK_START.md)
-- 📐 Review fundamentals: [Assignment 0: Least Squares & Probability](assignments/least_squares_and_probability_theory/)
+- 📐 Review fundamentals: [Assignment 0: Least Squares & Probability](assignments/least_squares_and_probability_theory/) (optional)
 - 📚 Jump to [Assignment 1: Boustrophedon Navigator](assignments/first_order_boustrophedon_navigator/README.md)
-- 💻 Explore the [sample code](samples/)
 - 🔧 Having issues? Check the [Troubleshooting Guide](TROUBLESHOOTING.md)
