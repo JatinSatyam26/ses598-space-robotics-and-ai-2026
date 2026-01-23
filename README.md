@@ -18,6 +18,15 @@ This course explores the intersection of robotics, artificial intelligence, and 
 
 All assignments use industry-standard tools including ROS2, Gazebo simulation, PX4 autopilot, and real-time visualization with RViz.
 
+## 📖 Documentation
+
+### New to the Course?
+- **[Quick Start Guide](QUICK_START.md)** - Get up and running in 15 minutes
+- **[Troubleshooting Guide](TROUBLESHOOTING.md)** - Solutions to common issues
+
+### Having Issues?
+If you encounter problems during setup or execution, check the **[Troubleshooting Guide](TROUBLESHOOTING.md)** first. It contains solutions to 50+ common issues organized by category.
+
 ## 🗂️ Repository Structure
 
 ```
@@ -30,6 +39,8 @@ ses598-space-robotics-and-ai-2026/
 ├── samples/                   # Sample code and demonstrations
 │   ├── dreams_robot_control/
 │   └── dreams_stereo/
+├── QUICK_START.md            # Fast-track setup guide
+├── TROUBLESHOOTING.md        # Common issues and solutions
 ├── LICENSE
 └── README.md
 ```
@@ -89,6 +100,8 @@ Students develop an autonomous drone system to search for, map, and analyze cyli
 ---
 
 ## 🚀 Getting Started
+
+> **💡 Quick Start:** For streamlined setup instructions, see the **[Quick Start Guide](QUICK_START.md)**
 
 ### System Requirements
 
@@ -202,6 +215,10 @@ Repeat for each assignment as needed.
 - [Gazebo Documentation](https://gazebosim.org/docs)
 - [Underactuated Robotics (MIT)](https://underactuated.mit.edu/)
 
+### Need Help?
+- **[Quick Start Guide](QUICK_START.md)** - Fast-track setup for each assignment
+- **[Troubleshooting Guide](TROUBLESHOOTING.md)** - Common issues and solutions
+
 ## 🤝 Contributing
 
 ### For Students
@@ -242,4 +259,8 @@ This course builds upon:
 
 ---
 
-**Ready to begin?** Start with [Assignment 1: Boustrophedon Navigator](assignments/first_order_boustrophedon_navigator/README.md) or explore the [sample code](samples/).
+**Ready to begin?** 
+- 🚀 New students: Start with the [Quick Start Guide](QUICK_START.md)
+- 📚 Jump to [Assignment 1: Boustrophedon Navigator](assignments/first_order_boustrophedon_navigator/README.md)
+- 💻 Explore the [sample code](samples/)
+- 🔧 Having issues? Check the [Troubleshooting Guide](TROUBLESHOOTING.md)
