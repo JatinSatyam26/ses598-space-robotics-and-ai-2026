@@ -55,8 +55,8 @@ Students tune a PD controller to execute precise lawnmower survey patterns (bous
 
 ### Assignment 2: Cart-Pole Optimal Control
 **Topics:** LQR Control, System Dynamics, Reinforcement Learning
-
-<img src="https://github.com/user-attachments/assets/c8591475-3676-4cdf-8b4a-6539e5a2325f" alt="Cart-Pole System" width="500"/>
+<img width="1069" height="1069" alt="Cart pole System Gazebo view" src="https://github.com/user-attachments/assets/9b8e438e-5cff-4679-abdb-c42d7b31a01d" />
+<img src="https://github.com/user-attachments/assets/c8591475-3676-4cdf-8b4a-6539e5a2325f" alt="Cart-Pole System Rviz view" width="500"/>
 
 Students analyze and tune an LQR controller for an inverted pendulum (cart-pole) system subject to earthquake disturbances. This assignment develops skills critical for controlling systems under dynamic perturbations, applicable to lunar landers and orbital debris removal robots.
 
