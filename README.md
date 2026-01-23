@@ -196,29 +196,6 @@ source install/setup.bash
 
 Repeat for each assignment as needed.
 
-## 📖 Sample Code
-
-The `samples/` directory contains reference implementations and demonstrations:
-
-### dreams_robot_control
-- Circular trajectory controller for PX4 drones
-- Estimation examples (Monte Carlo, particle filters)
-- PX4 offboard control patterns
-
-### dreams_stereo
-- Feature detection and matching
-- Stereo vision processing
-- Visual tracking implementations
-
-## 🎓 Learning Resources
-
-### Lectures
-The `lectures/` directory contains:
-- LaTeX source files for course slides
-- Generated PDFs
-- Python scripts for generating plots and visualizations
-- Topics include estimation, filtering, optimal control, and more
-
 ### External Resources
 - [ROS2 Documentation](https://docs.ros.org/en/humble/)
 - [PX4 User Guide](https://docs.px4.io/main/en/)
@@ -247,26 +224,13 @@ This work is licensed under a [Creative Commons Attribution 4.0 International Li
 
 [![CC BY 4.0](https://i.creativecommons.org/l/by/4.0/88x31.png)](http://creativecommons.org/licenses/by/4.0/)
 
-**Copyright © 2024-2026 DREAMS Lab, Arizona State University**
-
-You are free to:
-- **Share** — copy and redistribute the material in any medium or format
-- **Adapt** — remix, transform, and build upon the material for any purpose, even commercially
-
-Under the following terms:
-- **Attribution** — You must give appropriate credit, provide a link to the license, and indicate if changes were made.
 
 ## 👥 Course Staff
 
-**Instructor:** DREAMS Lab, Arizona State University
+**Instructor:** Jnaneshwar Das, Arizona State University
 
 **Course Website:** [https://deepgis.org/dreamslab/ses598/](https://deepgis.org/dreamslab/ses598/)
 
-## 📧 Support
-
-- **Course Issues:** Create an issue in your fork for assignment-specific questions
-- **Technical Support:** Consult the course website and office hours
-- **Repository Issues:** Submit an issue to the [main repository](https://github.com/DREAMS-lab/ses598-space-robotics-and-ai-2026/issues)
 
 ## 🌟 Acknowledgments
 
