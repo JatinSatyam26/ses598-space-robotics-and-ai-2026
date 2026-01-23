@@ -4,6 +4,8 @@ This ROS2 package implements an autonomous drone system for geological feature d
 
 ## Challenge Overview
 
+<img width="1195" height="1020" alt="image" src="https://github.com/user-attachments/assets/6e3d9610-a63a-4949-88a1-a14166a9ed50" />
+
 Students will develop a controller for a PX4-powered drone to efficiently search, map, and analyze cylindrical rock formations in an unknown environment. The drone must identify two rock formations (10m and 7m tall cylinders), estimate their dimensions, and successfully land on top of the taller cylinder.
 
 ### Mission Objectives
@@ -13,8 +15,6 @@ Students will develop a controller for a PX4-powered drone to efficiently search
    - Determine positions in the world frame
 3. Land safely on top of the taller cylinder
 4. Complete mission while logging time and energy performance. 
-
-![Screenshot from 2025-03-04 20-22-35](https://github.com/user-attachments/assets/3548b6da-613a-401d-bf38-e9e3ac4a2a2b)
 
 ### Evaluation Criteria (100 points)
 
