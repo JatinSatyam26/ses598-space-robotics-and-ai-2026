@@ -175,7 +175,7 @@ Add these topics:
    - Submit the URL of your GitHub repository
    - Ensure your repository is public
    - Final commit should be before the deadline
-<img width="1210" height="1098" alt="image" src="https://github.com/user-attachments/assets/f1eeb837-3728-4d3f-aec2-e3acad7b10f2" />
+<img width="1211" height="879" alt="Example terminal debug outputs for controller" src="https://github.com/user-attachments/assets/e25cf4d5-898d-425c-897a-1664a5762550" />
 
 ## Tips for Success
 - Start with low gains and increase gradually
