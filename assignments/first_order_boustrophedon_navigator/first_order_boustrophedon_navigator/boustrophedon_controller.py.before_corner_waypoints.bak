@@ -8,7 +8,6 @@ import numpy as np
 import math
 from collections import deque
 from std_msgs.msg import Float64
-from first_order_boustrophedon_navigator.msg import PerformanceMetrics
 from rcl_interfaces.msg import SetParametersResult
 import matplotlib.pyplot as plt
 
@@ -71,36 +70,23 @@ class BoustrophedonController(Node):
             'cross_track_error', 
             10
         )
-        self.metrics_pub = self.create_publisher(PerformanceMetrics, 'performance_metrics', 10)
         
         self.get_logger().info('Lawnmower controller started')
         self.get_logger().info(f'Following waypoints: {self.waypoints}')
 
     def generate_waypoints(self):
         waypoints = []
-        x_left = 2.0
-        x_right = 9.0
-        y = 8.0  # start near top
-
-        # Start at the left edge of the first row
-        waypoints.append((x_left, y))
-        direction = 1  # 1: go to right, -1: go to left
-
-        while True:
-            # Drive across the current row
-            end_x = x_right if direction == 1 else x_left
-            waypoints.append((end_x, y))
-
-            # Step down to the next row (vertical move at the edge)
-            next_y = y - self.spacing
-            if next_y < 3.0:
-                break
-            waypoints.append((end_x, next_y))
-
-            # Next row starts where we just stepped down
-            y = next_y
-            direction *= -1
-
+        y = 8.0  # Start higher in the window
+        
+        while y >= 3.0:
+            if len(waypoints) % 2 == 0:
+                waypoints.append((2.0, y))
+                waypoints.append((9.0, y))
+            else:
+                waypoints.append((9.0, y))
+                waypoints.append((2.0, y))
+            y -= self.spacing
+        
         return waypoints
 
     def calculate_cross_track_error(self):
@@ -204,19 +190,6 @@ class BoustrophedonController(Node):
         vel_msg.angular.z = max(min(angular_velocity, 2.0), -2.0)
         self.velocity_publisher.publish(vel_msg)
 
-        # Extra Credit: Performance Metrics
-        m = PerformanceMetrics()
-        m.cross_track_error = float(cross_track_error)
-        m.linear_velocity = float(vel_msg.linear.x)
-        m.angular_velocity = float(vel_msg.angular.z)
-        m.distance_to_waypoint = float(distance)
-        m.current_waypoint_index = self.current_waypoint
-        m.total_waypoints = len(self.waypoints)
-        m.completion_percentage = (self.current_waypoint / len(self.waypoints)) * 100.0
-        m.controller_mode = 1 if self.mode == "TURN" else 0
-        m.stamp = self.get_clock().now().to_msg()
-        self.metrics_pub.publish(m)
-
         self.trajectory.append((self.pose.x, self.pose.y))
         self.velocities.append((linear_velocity, angular_velocity))
 
@@ -242,15 +215,17 @@ class BoustrophedonController(Node):
             if self.current_waypoint < len(self.waypoints):
                 next_wp = self.waypoints[self.current_waypoint]
 
-                # Always turn to align with the next segment before driving
-                self.turn_target_angle = math.atan2(
-                    next_wp[1] - prev_wp[1],
-                    next_wp[0] - prev_wp[0]
-                )
-                self.mode = "TURN"
-                self.prev_linear_error = 0.0
-                self.prev_angular_error = 0.0
-                self.prev_time = self.get_clock().now()
+                # If Y changes, we are moving to a new row -> do a turn first
+                if abs(next_wp[1] - prev_wp[1]) > 1e-3:
+                    self.turn_target_angle = math.atan2(
+                        next_wp[1] - prev_wp[1],
+                        next_wp[0] - prev_wp[0]
+                    )
+                    self.mode = "TURN"
+                    self.prev_linear_error = 0.0
+                    self.prev_angular_error = 0.0
+                    self.prev_time = self.get_clock().now()
+
 
     def parameter_callback(self, params):
         for param in params:
