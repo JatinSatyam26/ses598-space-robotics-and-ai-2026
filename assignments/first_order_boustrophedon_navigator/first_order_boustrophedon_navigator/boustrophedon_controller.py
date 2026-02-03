@@ -3,7 +3,7 @@
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Twist
-from turtlesim.msg import Pose
+from turtlesim_msgs.msg import Pose
 import numpy as np
 import math
 from collections import deque
@@ -44,6 +44,9 @@ class BoustrophedonController(Node):
         # Lawnmower pattern parameters
         self.waypoints = self.generate_waypoints()
         self.current_waypoint = 0
+        self.mode = "DRIVE"
+        self.turn_target_angle = None
+
         
         # Cross-track error calculation
         self.cross_track_errors = deque(maxlen=1000)  # Store last 1000 errors
@@ -73,17 +76,29 @@ class BoustrophedonController(Node):
 
     def generate_waypoints(self):
         waypoints = []
-        y = 8.0  # Start higher in the window
-        
-        while y >= 3.0:
-            if len(waypoints) % 2 == 0:
-                waypoints.append((2.0, y))
-                waypoints.append((9.0, y))
-            else:
-                waypoints.append((9.0, y))
-                waypoints.append((2.0, y))
-            y -= self.spacing
-        
+        x_left = 2.0
+        x_right = 9.0
+        y = 8.0  # start near top
+
+        # Start at the left edge of the first row
+        waypoints.append((x_left, y))
+        direction = 1  # 1: go to right, -1: go to left
+
+        while True:
+            # Drive across the current row
+            end_x = x_right if direction == 1 else x_left
+            waypoints.append((end_x, y))
+
+            # Step down to the next row (vertical move at the edge)
+            next_y = y - self.spacing
+            if next_y < 3.0:
+                break
+            waypoints.append((end_x, next_y))
+
+            # Next row starts where we just stepped down
+            y = next_y
+            direction *= -1
+
         return waypoints
 
     def calculate_cross_track_error(self):
@@ -107,8 +122,12 @@ class BoustrophedonController(Node):
         projected_point = start + projection_length * path_unit
 
         error_vector = pos - projected_point
-        error_sign = np.sign(np.cross(path_unit, error_vector / np.linalg.norm(error_vector)))
-        error = np.linalg.norm(error_vector) * error_sign
+        err_norm = np.linalg.norm(error_vector)
+        if err_norm < 1e-9:
+            error = 0.0
+        else:
+            error_sign = np.sign(np.cross(path_unit, error_vector / err_norm))
+            error = err_norm * error_sign
 
         self.cross_track_errors.append(abs(error))
 
@@ -128,6 +147,25 @@ class BoustrophedonController(Node):
         return math.atan2(y2 - y1, x2 - x1)
 
     def control_loop(self):
+        # TURN mode: rotate in place until aligned with next segment
+        if self.mode == "TURN":
+            angle_error = self.turn_target_angle - self.pose.theta
+            while angle_error > math.pi:
+                angle_error -= 2 * math.pi
+            while angle_error < -math.pi:
+                angle_error += 2 * math.pi
+
+            vel_msg = Twist()
+            vel_msg.linear.x = 0.0
+            vel_msg.angular.z = max(min(self.Kp_angular * angle_error, 2.0), -2.0)
+            self.velocity_publisher.publish(vel_msg)
+
+            # If aligned, switch back to DRIVE
+            if abs(angle_error) < 0.05:
+                self.mode = "DRIVE"
+                self.turn_target_angle = None
+            return
+
         if self.current_waypoint >= len(self.waypoints):
             self.get_logger().info('Lawnmower pattern complete')
             if self.cross_track_errors:
@@ -142,6 +180,7 @@ class BoustrophedonController(Node):
         target_x, target_y = self.waypoints[self.current_waypoint]
         current_time = self.get_clock().now()
         dt = (current_time - self.prev_time).nanoseconds / 1e9
+        dt = max(dt, 1e-3)
 
         distance = self.get_distance(self.pose.x, self.pose.y, target_x, target_y)
         target_angle = self.get_angle(self.pose.x, self.pose.y, target_x, target_y)
@@ -160,7 +199,7 @@ class BoustrophedonController(Node):
 
         vel_msg = Twist()
         vel_msg.linear.x = min(linear_velocity, 2.0)
-        vel_msg.angular.z = angular_velocity
+        vel_msg.angular.z = max(min(angular_velocity, 2.0), -2.0)
         self.velocity_publisher.publish(vel_msg)
 
         self.trajectory.append((self.pose.x, self.pose.y))
@@ -171,8 +210,32 @@ class BoustrophedonController(Node):
         self.prev_time = current_time
 
         if distance < 0.1:
+            # Hard stop at waypoint to avoid arcing into the next segment
+            stop = Twist()
+            stop.linear.x = 0.0
+            stop.angular.z = 0.0
+            self.velocity_publisher.publish(stop)
+
+            # Save the waypoint we just reached
+            prev_wp = self.waypoints[self.current_waypoint]
+
+            # Advance to next waypoint
             self.current_waypoint += 1
-            self.get_logger().info(f'Reached waypoint {self.current_waypoint}')
+            self.get_logger().info(f"Reached waypoint {self.current_waypoint}")
+
+            # If there is a next waypoint, decide whether we should TURN-in-place
+            if self.current_waypoint < len(self.waypoints):
+                next_wp = self.waypoints[self.current_waypoint]
+
+                # Always turn to align with the next segment before driving
+                self.turn_target_angle = math.atan2(
+                    next_wp[1] - prev_wp[1],
+                    next_wp[0] - prev_wp[0]
+                )
+                self.mode = "TURN"
+                self.prev_linear_error = 0.0
+                self.prev_angular_error = 0.0
+                self.prev_time = self.get_clock().now()
 
     def parameter_callback(self, params):
         for param in params:
