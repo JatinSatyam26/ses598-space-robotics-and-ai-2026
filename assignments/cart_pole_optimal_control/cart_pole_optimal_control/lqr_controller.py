@@ -35,8 +35,8 @@ class CartPoleLQRController(Node):
         ])
         
         # LQR cost matrices
-        self.Q = np.diag([1.0, 1.0, 1.0, 1.0])  # State cost
-        self.R = np.array([[1.0]])  # Control cost
+        self.Q = np.diag([10.0, 5.0, 20.0, 15.0])  # State cost - AGGRESSIVE
+        self.R = np.array([[0.01]])  # Control cost - AGGRESSIVE
         
         # Compute LQR gain matrix
         self.K = self.compute_lqr_gain()
@@ -53,6 +53,7 @@ class CartPoleLQRController(Node):
         self.cart_positions = deque()
         self.pole_angles = deque()
         self.control_forces = deque()
+        self.earthquake_forces = deque()  # Initialize earthquake forces
         self.start_time = None
         
         # Create publishers and subscribers
