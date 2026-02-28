@@ -1,0 +1,10 @@
+[INFO] [launch]: All log files can be found below /home/jatin-satyam/.ros/log/2026-02-26-02-44-46-628667-jatin-satyam-OMEN-by-HP-Gaming-Laptop-16-wf0xxx-63180
+[INFO] [launch]: Default logging verbosity is set to INFO
+[INFO] [python3-1]: process started with pid [63184]
+[INFO] [python3-2]: process started with pid [63185]
+[python3-2] [INFO] [1772099087.470596385] [cylinder_mission_node]: Camera intrinsics received.
+[python3-2] [INFO] [1772099087.472074975] [cylinder_mission_node]: Locked battery_at_mission_start: 0.9889
+[python3-2] [INFO] [1772099087.472416336] [cylinder_mission_node]: Intrinsics and battery OK. Moving to ARM_TAKEOFF.
+[python3-2] QSocketNotifier: Can only be used with threads started with QThread
+[python3-2] [INFO] [1772099088.053427552] [cylinder_mission_node]: Offboard mode command sent
+[python3-2] [INFO] [1772099088.054082135] [cylinder_mission_node]: Arm command sent
