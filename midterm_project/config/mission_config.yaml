@@ -1,0 +1,35 @@
+# Midterm Project Mission Configuration
+# Structured as ROS2 parameter file
+
+control_node:
+  ros__parameters:
+    takeoff_height: 15.0
+    survey_height: 12.0
+    landing_approach_height: 5.0
+    position_threshold: 0.3
+    yaw_rate: 0.3
+
+perception_node:
+  ros__parameters:
+    keyframe_distance: 1.0
+    keyframe_angle: 15.0
+    image_width: 640
+    image_height: 480
+
+hazard_node:
+  ros__parameters:
+    max_slope_deg: 10.0
+    max_roughness: 0.3
+    min_confidence: 0.6
+    landing_radius: 1.5
+    slope_weight: 0.4
+    roughness_weight: 0.3
+    confidence_weight: 0.3
+    grid_resolution: 0.5
+    world_size: 50.0
+
+planning_node:
+  ros__parameters:
+    max_exploration_time: 120.0
+    min_coverage: 0.7
+    next_best_view_samples: 20

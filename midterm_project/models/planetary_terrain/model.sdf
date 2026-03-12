@@ -1,0 +1,31 @@
+<?xml version="1.0" ?>
+<sdf version="1.9">
+  <model name="planetary_terrain">
+    <static>true</static>
+    <link name="terrain_link">
+      <collision name="terrain_collision">
+        <geometry>
+          <heightmap>
+            <uri>meshes/heightmap.png</uri>
+            <size>50 50 10</size>
+            <pos>0 0 0</pos>
+          </heightmap>
+        </geometry>
+      </collision>
+      <visual name="terrain_visual">
+        <geometry>
+          <heightmap>
+            <uri>meshes/heightmap.png</uri>
+            <size>50 50 10</size>
+            <pos>0 0 0</pos>
+          </heightmap>
+        </geometry>
+        <material>
+          <ambient>0.5 0.4 0.3 1</ambient>
+          <diffuse>0.6 0.5 0.4 1</diffuse>
+          <specular>0.1 0.1 0.1 1</specular>
+        </material>
+      </visual>
+    </link>
+  </model>
+</sdf>
