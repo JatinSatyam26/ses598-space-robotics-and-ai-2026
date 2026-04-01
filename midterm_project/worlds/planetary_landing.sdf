@@ -1,0 +1,6 @@
+<?xml version="1.0" ?>
+<sdf version="1.9">
+  <world name="planetary_landing">
+    <!-- World to be implemented in Phases 21-30 -->
+  </world>
+</sdf>

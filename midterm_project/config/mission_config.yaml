@@ -1,0 +1,28 @@
+control_node:
+  ros__parameters:
+    takeoff_height: 5.0
+    survey_extent: 15.0
+    survey_spacing: 5.0
+    waypoint_threshold: 1.5
+    survey_speed: 2.0
+
+perception_node:
+  ros__parameters:
+    keyframe_distance: 1.0
+    keyframe_angle_deg: 15.0
+    model_path: ""
+
+mapping_node:
+  ros__parameters:
+    voxel_size: 0.1
+    uncertainty_threshold: 0.5
+
+hazard_node:
+  ros__parameters:
+    slope_threshold: 0.3
+    roughness_threshold: 0.2
+
+planning_node:
+  ros__parameters:
+    goal_x: 10.0
+    goal_y: 10.0
