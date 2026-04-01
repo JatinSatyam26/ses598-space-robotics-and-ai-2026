@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """
 Phase 51-59: Control Node — Full State Machine
-States: WAIT_ODOM -> PREFLIGHT -> ARMING -> TAKEOFF -> SURVEY -> HOVER
+States: WAIT_ODOM -> PREFLIGHT -> MODE_SWITCH -> ARMING -> TAKEOFF -> SURVEY -> HOVER
 
-BUG FIXES vs previous version:
-1. target_z computed from home_position (not hardcoded -5.0 absolute NED)
-2. Arm command retried every 0.5s until liftoff detected (PX4 may reject first attempt)
-3. Mode switch sent separately from arm, with counter to ensure offboard confirmed first
+ROOT CAUSE FIX:
+PX4 was entering Auto.Takeoff instead of Offboard mode because mode switch
+and arm were sent almost simultaneously. PX4 armed before Offboard was confirmed.
+
+FIX: Dedicated MODE_SWITCH state that sends mode switch command for 2 full
+seconds (40 ticks at 20Hz) and confirms Offboard before attempting to arm.
 """
 
 import rclpy
@@ -26,12 +28,13 @@ import math
 
 class ControlNode(Node):
 
-    WAIT_ODOM = 'WAIT_ODOM'
-    PREFLIGHT  = 'PREFLIGHT'
-    ARMING     = 'ARMING'
-    TAKEOFF    = 'TAKEOFF'
-    SURVEY     = 'SURVEY'
-    HOVER      = 'HOVER'
+    WAIT_ODOM   = 'WAIT_ODOM'
+    PREFLIGHT   = 'PREFLIGHT'
+    MODE_SWITCH = 'MODE_SWITCH'   # NEW: dedicated state for Offboard confirmation
+    ARMING      = 'ARMING'
+    TAKEOFF     = 'TAKEOFF'
+    SURVEY      = 'SURVEY'
+    HOVER       = 'HOVER'
 
     def __init__(self):
         super().__init__('control_node')
@@ -74,20 +77,21 @@ class ControlNode(Node):
         self.odom_received   = False
         self.position        = np.array([0.0, 0.0, 0.0])
         self.home_position   = None
+        self.target_z        = None   # absolute NED Z, set from home
 
-        # FIX 1: target_z set from home_position, not hardcoded
-        self.target_z        = None
-
-        # Preflight
+        # Preflight counter
         self.preflight_count = 0
 
-        # FIX 2+3: arm with retry every 10 ticks (0.5s), mode switch first
-        self.arm_tick        = 0
-        self.arm_retry_interval = 10  # ticks at 20Hz = every 0.5s
+        # Mode switch counter — must reach 40 ticks (2s) before arming
+        self.mode_switch_count = 0
+
+        # Arm retry counter
+        self.arm_tick          = 0
+        self.arm_retry_interval = 10  # every 0.5s
 
         # Survey
-        self.waypoints       = []
-        self.waypoint_idx    = 0
+        self.waypoints     = []
+        self.waypoint_idx  = 0
 
         # Control loop at 20 Hz
         self.timer = self.create_timer(0.05, self.control_loop)
@@ -102,16 +106,15 @@ class ControlNode(Node):
             msg.position[2]
         ])
         if not self.odom_received:
-            self.odom_received   = True
-            self.home_position   = self.position.copy()
-            # FIX 1: compute absolute NED Z target from actual home altitude
-            self.target_z        = float(self.home_position[2]) - self.takeoff_height
+            self.odom_received = True
+            self.home_position = self.position.copy()
+            self.target_z      = float(self.home_position[2]) - self.takeoff_height
             self.get_logger().info(
                 f'Odometry received — home={self.home_position}, '
                 f'target_z={self.target_z:.3f} (NED)')
 
     # ------------------------------------------------------------------
-    # Altitude helper — always relative to home, positive = up
+    # Altitude helper — relative to home, positive = up
     # ------------------------------------------------------------------
     def _alt(self):
         return -(self.position[2] - self.home_position[2])
@@ -120,12 +123,13 @@ class ControlNode(Node):
     # Control loop
     # ------------------------------------------------------------------
     def control_loop(self):
-        if   self.state == self.WAIT_ODOM: self._state_wait_odom()
-        elif self.state == self.PREFLIGHT:  self._state_preflight()
-        elif self.state == self.ARMING:     self._state_arming()
-        elif self.state == self.TAKEOFF:    self._state_takeoff()
-        elif self.state == self.SURVEY:     self._state_survey()
-        elif self.state == self.HOVER:      self._state_hover()
+        if   self.state == self.WAIT_ODOM:   self._state_wait_odom()
+        elif self.state == self.PREFLIGHT:    self._state_preflight()
+        elif self.state == self.MODE_SWITCH:  self._state_mode_switch()
+        elif self.state == self.ARMING:       self._state_arming()
+        elif self.state == self.TAKEOFF:      self._state_takeoff()
+        elif self.state == self.SURVEY:       self._state_survey()
+        elif self.state == self.HOVER:        self._state_hover()
 
     def _state_wait_odom(self):
         if self.odom_received:
@@ -133,8 +137,7 @@ class ControlNode(Node):
             self.state = self.PREFLIGHT
 
     def _state_preflight(self):
-        # Send offboard heartbeat continuously before arming
-        # PX4 requires ~1s of offboard setpoints before it accepts mode switch
+        # Send 40 offboard heartbeats (~2s) so PX4 recognises the offboard stream
         self._publish_offboard_mode()
         self._publish_setpoint(0.0, 0.0, self.target_z)
         self.preflight_count += 1
@@ -142,31 +145,47 @@ class ControlNode(Node):
             self.get_logger().info(
                 f'PREFLIGHT: {self.preflight_count} setpoints sent')
         if self.preflight_count >= 40:
-            self.get_logger().info('PREFLIGHT done — ARMING')
+            self.get_logger().info(
+                'PREFLIGHT done — switching to Offboard mode')
+            self.state = self.MODE_SWITCH
+
+    def _state_mode_switch(self):
+        # Keep publishing offboard heartbeat WHILE sending mode switch command
+        # Stay here for 40 ticks (2s) to ensure PX4 confirms Offboard
+        # ONLY THEN proceed to arm
+        self._publish_offboard_mode()
+        self._publish_setpoint(0.0, 0.0, self.target_z)
+
+        self.mode_switch_count += 1
+
+        # Send mode switch command every 10 ticks (0.5s)
+        if self.mode_switch_count % 10 == 1:
+            self._send_command(VehicleCommand.VEHICLE_CMD_DO_SET_MODE, 1.0, 6.0)
+            self.get_logger().info(
+                f'MODE_SWITCH: sent (tick {self.mode_switch_count}), '
+                f'alt={self._alt():.2f}m')
+
+        # After 2 full seconds of mode switch commands, proceed to arm
+        if self.mode_switch_count >= 40:
+            self.get_logger().info(
+                'Offboard mode confirmed (2s) — ARMING')
             self.state = self.ARMING
 
     def _state_arming(self):
-        # Always keep publishing offboard heartbeat
         self._publish_offboard_mode()
         self._publish_setpoint(0.0, 0.0, self.target_z)
 
         self.arm_tick += 1
 
-        # FIX 3: Send mode switch first, arm on next retry interval
-        # This gives PX4 time to confirm offboard before arming
+        # Send arm command every 0.5s until liftoff
         if self.arm_tick % self.arm_retry_interval == 1:
-            self._send_command(VehicleCommand.VEHICLE_CMD_DO_SET_MODE, 1.0, 6.0)
-            self.get_logger().info(
-                f'Mode switch sent (tick {self.arm_tick}), alt={self._alt():.2f}m')
-
-        # FIX 2: Retry arm command every interval until liftoff
-        if self.arm_tick % self.arm_retry_interval == 2:
             self._send_command(
                 VehicleCommand.VEHICLE_CMD_COMPONENT_ARM_DISARM, 1.0)
             self.get_logger().info(
-                f'Arm command sent (tick {self.arm_tick}), alt={self._alt():.2f}m')
+                f'Arm command sent (tick {self.arm_tick}), '
+                f'alt={self._alt():.2f}m')
 
-        # Detect liftoff via altitude change > 1.0m relative to home
+        # Liftoff detected via altitude change > 1.0m
         if self._alt() > 1.0:
             self.get_logger().info(
                 f'Liftoff detected at alt={self._alt():.2f}m — TAKEOFF')
@@ -196,7 +215,7 @@ class ControlNode(Node):
         if dist < self.waypoint_threshold:
             self.get_logger().info(
                 f'Waypoint {self.waypoint_idx + 1}/{len(self.waypoints)} '
-                f'reached ({wp[0]:.0f},{wp[1]:.0f}) — dist={dist:.2f}m')
+                f'reached ({wp[0]:.0f},{wp[1]:.0f}) dist={dist:.2f}m')
             self.waypoint_idx += 1
 
     def _state_hover(self):
@@ -206,7 +225,6 @@ class ControlNode(Node):
 
     # ------------------------------------------------------------------
     # Survey pattern — lawnmower grid
-    # Gentle turns: waypoints alternate row ends, no sharp reversals
     # ------------------------------------------------------------------
     def _generate_survey_pattern(self):
         waypoints = []
