@@ -16,7 +16,7 @@ BRIDGE_PID=$!
 echo "Bridge PID: $BRIDGE_PID"
 
 echo "Waiting 3s for bridge to settle..."
-sleep 3
+sleep 5
 
 echo "=== Starting control node ==="
 ros2 run midterm_project control_node \
