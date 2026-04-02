@@ -89,8 +89,9 @@ class ControlNode(Node):
         self.get_logger().info("Arm command sent")
 
     def timer_callback(self):
-        if self.offboard_setpoint_counter == PREFLIGHT_TICKS:
+        if self.offboard_setpoint_counter >= 5:
             self.engage_offboard_mode()
+        if self.offboard_setpoint_counter == PREFLIGHT_TICKS:
             self.arm()
         self.publish_offboard_control_mode()
 
@@ -101,7 +102,8 @@ class ControlNode(Node):
 
         elif self.state == "PREFLIGHT":
             if self.home_position is not None:
-                self.publish_trajectory_setpoint(self.home_position[0], self.home_position[1], self.home_position[2])
+                target_z = self.home_position[2] - SURVEY_ALTITUDE_M
+                self.publish_trajectory_setpoint(self.home_position[0], self.home_position[1], target_z)
             if self.offboard_setpoint_counter > PREFLIGHT_TICKS:
                 self.state = "TAKEOFF"
                 self.get_logger().info(f"Climbing to {SURVEY_ALTITUDE_M}m...")
