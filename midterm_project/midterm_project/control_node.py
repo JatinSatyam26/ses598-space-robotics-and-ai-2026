@@ -4,7 +4,7 @@ from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPolicy
 from px4_msgs.msg import VehicleOdometry, OffboardControlMode, VehicleCommand, TrajectorySetpoint
 
-SURVEY_ALTITUDE_M    = 5.0
+SURVEY_ALTITUDE_M    = 8.0
 POSITION_THRESHOLD_M = 0.5
 ALTITUDE_THRESHOLD_M = 0.5
 HOVER_DURATION_S     = 10.0
