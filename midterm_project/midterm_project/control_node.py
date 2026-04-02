@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import math, time, rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPolicy
@@ -68,8 +67,11 @@ class ControlNode(Node):
 
     def publish_trajectory_setpoint(self, x, y, z, yaw=0.0):
         msg = TrajectorySetpoint()
-        msg.position=[float(x),float(y),float(z)]; msg.yaw=float(yaw)
-        msg.timestamp = self.get_clock().now().nanoseconds // 1000
+        msg.position    = [float(x), float(y), float(z)]
+        msg.velocity    = [float("nan"), float("nan"), float("nan")]
+        msg.acceleration= [float("nan"), float("nan"), float("nan")]
+        msg.yaw         = float(yaw)
+        msg.timestamp   = self.get_clock().now().nanoseconds // 1000
         self.trajectory_pub.publish(msg)
 
     def publish_vehicle_command(self, command, param1=0.0, param2=0.0):
@@ -82,28 +84,39 @@ class ControlNode(Node):
 
     def engage_offboard_mode(self):
         self.publish_vehicle_command(VehicleCommand.VEHICLE_CMD_DO_SET_MODE, param1=1.0, param2=6.0)
-        self.get_logger().info("Offboard mode command sent")
 
     def arm(self):
         self.publish_vehicle_command(VehicleCommand.VEHICLE_CMD_COMPONENT_ARM_DISARM, param1=1.0)
         self.get_logger().info("Arm command sent")
 
     def timer_callback(self):
-        if self.offboard_setpoint_counter >= 5:
-            self.engage_offboard_mode()
-        if self.offboard_setpoint_counter == PREFLIGHT_TICKS:
-            self.arm()
+        # Always publish heartbeat and setpoint first — PX4 needs both before accepting Offboard
         self.publish_offboard_control_mode()
 
+        # Always publish a setpoint so PX4 has a valid stream from tick 0
+        if self.home_position is not None:
+            sp_x = self.home_position[0]
+            sp_y = self.home_position[1]
+            sp_z = self.home_position[2] - SURVEY_ALTITUDE_M
+        else:
+            sp_x, sp_y, sp_z = 0.0, 0.0, -SURVEY_ALTITUDE_M
+        self.publish_trajectory_setpoint(sp_x, sp_y, sp_z)
+
+        # Send offboard mode command from tick 5 onwards (gives PX4 time before arm)
+        if self.offboard_setpoint_counter >= 5:
+            self.engage_offboard_mode()
+
+        # Arm at tick 10 — by this point 5 offboard mode commands have been sent
+        if self.offboard_setpoint_counter == PREFLIGHT_TICKS:
+            self.arm()
+
+        # State machine
         if self.state == "WAIT_ODOM":
             if self.position is not None and self.home_position is not None:
                 self.state = "PREFLIGHT"
-                self.get_logger().info(f"Odometry received. PREFLIGHT — arm at counter={PREFLIGHT_TICKS}")
+                self.get_logger().info(f"Odometry received. Arm at counter={PREFLIGHT_TICKS}")
 
         elif self.state == "PREFLIGHT":
-            if self.home_position is not None:
-                target_z = self.home_position[2] - SURVEY_ALTITUDE_M
-                self.publish_trajectory_setpoint(self.home_position[0], self.home_position[1], target_z)
             if self.offboard_setpoint_counter > PREFLIGHT_TICKS:
                 self.state = "TAKEOFF"
                 self.get_logger().info(f"Climbing to {SURVEY_ALTITUDE_M}m...")
