@@ -67,11 +67,11 @@ class ControlNode(Node):
 
     def publish_trajectory_setpoint(self, x, y, z, yaw=0.0):
         msg = TrajectorySetpoint()
-        msg.position    = [float(x), float(y), float(z)]
-        msg.velocity    = [float("nan"), float("nan"), float("nan")]
-        msg.acceleration= [float("nan"), float("nan"), float("nan")]
-        msg.yaw         = float(yaw)
-        msg.timestamp   = self.get_clock().now().nanoseconds // 1000
+        msg.position     = [float(x), float(y), float(z)]
+        msg.velocity     = [float("nan"), float("nan"), float("nan")]
+        msg.acceleration = [float("nan"), float("nan"), float("nan")]
+        msg.yaw          = float(yaw)
+        msg.timestamp    = self.get_clock().now().nanoseconds // 1000
         self.trajectory_pub.publish(msg)
 
     def publish_vehicle_command(self, command, param1=0.0, param2=0.0):
@@ -90,23 +90,17 @@ class ControlNode(Node):
         self.get_logger().info("Arm command sent")
 
     def timer_callback(self):
-        # Always publish heartbeat and setpoint first — PX4 needs both before accepting Offboard
+        # Heartbeat every tick — required
         self.publish_offboard_control_mode()
 
-        # Always publish a setpoint so PX4 has a valid stream from tick 0
+        # Setpoint every tick — required for Offboard acceptance
         if self.home_position is not None:
-            sp_x = self.home_position[0]
-            sp_y = self.home_position[1]
             sp_z = self.home_position[2] - SURVEY_ALTITUDE_M
+            self.publish_trajectory_setpoint(self.home_position[0], self.home_position[1], sp_z)
         else:
-            sp_x, sp_y, sp_z = 0.0, 0.0, -SURVEY_ALTITUDE_M
-        self.publish_trajectory_setpoint(sp_x, sp_y, sp_z)
+            self.publish_trajectory_setpoint(0.0, 0.0, -SURVEY_ALTITUDE_M)
 
-        # Send offboard mode command from tick 5 onwards (gives PX4 time before arm)
-        if self.offboard_setpoint_counter >= 5:
-            self.engage_offboard_mode()
-
-        # Arm at tick 10 — by this point 5 offboard mode commands have been sent
+        # Arm at tick 10
         if self.offboard_setpoint_counter == PREFLIGHT_TICKS:
             self.arm()
 
@@ -114,16 +108,33 @@ class ControlNode(Node):
         if self.state == "WAIT_ODOM":
             if self.position is not None and self.home_position is not None:
                 self.state = "PREFLIGHT"
-                self.get_logger().info(f"Odometry received. Arm at counter={PREFLIGHT_TICKS}")
+                self.get_logger().info("Odometry received. PREFLIGHT.")
 
         elif self.state == "PREFLIGHT":
             if self.offboard_setpoint_counter > PREFLIGHT_TICKS:
+                self.state = "WAIT_HOVER"
+                self.get_logger().info("Armed. Waiting for Auto.Takeoff to complete...")
+
+        elif self.state == "WAIT_HOVER":
+            alt = self._alt()
+            if self.offboard_setpoint_counter % 10 == 0:
+                self.get_logger().info(f"[WAIT_HOVER] alt={alt:.2f}m")
+            if alt >= 4.5:
+                self.state = "SWITCH_OFFBOARD"
+                self.get_logger().info(f"Auto.Takeoff done at {alt:.2f}m. Switching to Offboard...")
+
+        elif self.state == "SWITCH_OFFBOARD":
+            self.engage_offboard_mode()
+            alt = self._alt()
+            if self.offboard_setpoint_counter % 5 == 0:
+                self.get_logger().info(f"[SWITCH_OFFBOARD] alt={alt:.2f}m")
+            if alt > 5.3:
                 self.state = "TAKEOFF"
-                self.get_logger().info(f"Climbing to {SURVEY_ALTITUDE_M}m...")
+                self.get_logger().info(f"Offboard accepted! Climbing to {SURVEY_ALTITUDE_M}m...")
 
         elif self.state == "TAKEOFF":
-            tz = self.home_position[2] - SURVEY_ALTITUDE_M
-            self.publish_trajectory_setpoint(self.home_position[0], self.home_position[1], tz)
+            sp_z = self.home_position[2] - SURVEY_ALTITUDE_M
+            self.publish_trajectory_setpoint(self.home_position[0], self.home_position[1], sp_z)
             alt = self._alt()
             if self.offboard_setpoint_counter % 10 == 0:
                 self.get_logger().info(f"[TAKEOFF] {alt:.2f}m / {SURVEY_ALTITUDE_M}m")
