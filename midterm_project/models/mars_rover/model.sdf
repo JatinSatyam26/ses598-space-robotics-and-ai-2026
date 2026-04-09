@@ -1,0 +1,219 @@
+<?xml version="1.0" ?>
+<!--
+  Mars Rover — differential-drive ground vehicle
+  Chassis: 0.5 × 0.3 × 0.15 m box, 5 kg
+  Wheels:  4 × cylinder r=0.08m w=0.04m, two driven (left/right rear)
+  Colour:  Mars brown #8B4513  (0.545, 0.271, 0.075)
+  Spawn:   (8, 0, 0.2) by default
+-->
+<sdf version="1.9">
+  <model name="mars_rover">
+    <pose>8 0 0.2 0 0 0</pose>
+
+    <!-- ── Chassis ──────────────────────────────────────────────────────── -->
+    <link name="base_link">
+      <pose>0 0 0 0 0 0</pose>
+      <inertial>
+        <!-- 5 kg box: Ixx = m(y²+z²)/12, etc. -->
+        <mass>5.0</mass>
+        <inertia>
+          <ixx>0.040</ixx>   <!-- (0.3²+0.15²)/12 * 5 -->
+          <iyy>0.108</iyy>   <!-- (0.5²+0.15²)/12 * 5 -->
+          <izz>0.136</izz>   <!-- (0.5²+0.3²)/12 * 5  -->
+          <ixy>0</ixy><ixz>0</ixz><iyz>0</iyz>
+        </inertia>
+      </inertial>
+      <collision name="chassis_collision">
+        <geometry>
+          <box><size>0.5 0.3 0.15</size></box>
+        </geometry>
+        <surface>
+          <friction>
+            <ode><mu>0.8</mu><mu2>0.8</mu2></ode>
+          </friction>
+        </surface>
+      </collision>
+      <visual name="chassis_visual">
+        <geometry>
+          <box><size>0.5 0.3 0.15</size></box>
+        </geometry>
+        <material>
+          <!-- #8B4513 Mars brown -->
+          <ambient>0.545 0.271 0.075 1</ambient>
+          <diffuse>0.545 0.271 0.075 1</diffuse>
+          <specular>0.1 0.1 0.1 1</specular>
+        </material>
+      </visual>
+    </link>
+
+    <!-- ── Wheel macro: left-front ──────────────────────────────────────── -->
+    <!--
+      Wheel positions (chassis frame):
+        front-left:  ( 0.18,  0.17, -0.075)
+        front-right: ( 0.18, -0.17, -0.075)
+        rear-left:   (-0.18,  0.17, -0.075)
+        rear-right:  (-0.18, -0.17, -0.075)
+      Wheel roll 90° so cylinder axis → Y (axle direction)
+    -->
+
+    <link name="front_left_wheel">
+      <pose>0.18 0.17 -0.075 1.5708 0 0</pose>
+      <inertial>
+        <mass>0.3</mass>
+        <!-- cylinder r=0.08 l=0.04: Ixx=Iyy=m(3r²+l²)/12, Izz=mr²/2 -->
+        <inertia>
+          <ixx>0.000496</ixx><iyy>0.000496</iyy><izz>0.000960</izz>
+          <ixy>0</ixy><ixz>0</ixz><iyz>0</iyz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry><cylinder><radius>0.08</radius><length>0.04</length></cylinder></geometry>
+        <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+      </collision>
+      <visual name="visual">
+        <geometry><cylinder><radius>0.08</radius><length>0.04</length></cylinder></geometry>
+        <material>
+          <ambient>0.15 0.15 0.15 1</ambient>
+          <diffuse>0.2  0.2  0.2  1</diffuse>
+        </material>
+      </visual>
+    </link>
+
+    <joint name="front_left_wheel_joint" type="revolute">
+      <parent>base_link</parent>
+      <child>front_left_wheel</child>
+      <axis>
+        <xyz>0 0 1</xyz>   <!-- in child (wheel) frame: spins around cylinder axis -->
+        <dynamics><damping>0.01</damping></dynamics>
+      </axis>
+    </joint>
+
+    <!-- front-right wheel -->
+    <link name="front_right_wheel">
+      <pose>0.18 -0.17 -0.075 1.5708 0 0</pose>
+      <inertial>
+        <mass>0.3</mass>
+        <inertia>
+          <ixx>0.000496</ixx><iyy>0.000496</iyy><izz>0.000960</izz>
+          <ixy>0</ixy><ixz>0</ixz><iyz>0</iyz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry><cylinder><radius>0.08</radius><length>0.04</length></cylinder></geometry>
+        <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+      </collision>
+      <visual name="visual">
+        <geometry><cylinder><radius>0.08</radius><length>0.04</length></cylinder></geometry>
+        <material>
+          <ambient>0.15 0.15 0.15 1</ambient>
+          <diffuse>0.2  0.2  0.2  1</diffuse>
+        </material>
+      </visual>
+    </link>
+
+    <joint name="front_right_wheel_joint" type="revolute">
+      <parent>base_link</parent>
+      <child>front_right_wheel</child>
+      <axis>
+        <xyz>0 0 1</xyz>
+        <dynamics><damping>0.01</damping></dynamics>
+      </axis>
+    </joint>
+
+    <!-- rear-left wheel (driven) -->
+    <link name="left_wheel">
+      <pose>-0.18 0.17 -0.075 1.5708 0 0</pose>
+      <inertial>
+        <mass>0.3</mass>
+        <inertia>
+          <ixx>0.000496</ixx><iyy>0.000496</iyy><izz>0.000960</izz>
+          <ixy>0</ixy><ixz>0</ixz><iyz>0</iyz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry><cylinder><radius>0.08</radius><length>0.04</length></cylinder></geometry>
+        <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+      </collision>
+      <visual name="visual">
+        <geometry><cylinder><radius>0.08</radius><length>0.04</length></cylinder></geometry>
+        <material>
+          <ambient>0.15 0.15 0.15 1</ambient>
+          <diffuse>0.2  0.2  0.2  1</diffuse>
+        </material>
+      </visual>
+    </link>
+
+    <joint name="left_wheel_joint" type="revolute">
+      <parent>base_link</parent>
+      <child>left_wheel</child>
+      <axis>
+        <xyz>0 0 1</xyz>
+        <dynamics><damping>0.01</damping></dynamics>
+      </axis>
+    </joint>
+
+    <!-- rear-right wheel (driven) -->
+    <link name="right_wheel">
+      <pose>-0.18 -0.17 -0.075 1.5708 0 0</pose>
+      <inertial>
+        <mass>0.3</mass>
+        <inertia>
+          <ixx>0.000496</ixx><iyy>0.000496</iyy><izz>0.000960</izz>
+          <ixy>0</ixy><ixz>0</ixz><iyz>0</iyz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry><cylinder><radius>0.08</radius><length>0.04</length></cylinder></geometry>
+        <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+      </collision>
+      <visual name="visual">
+        <geometry><cylinder><radius>0.08</radius><length>0.04</length></cylinder></geometry>
+        <material>
+          <ambient>0.15 0.15 0.15 1</ambient>
+          <diffuse>0.2  0.2  0.2  1</diffuse>
+        </material>
+      </visual>
+    </link>
+
+    <joint name="right_wheel_joint" type="revolute">
+      <parent>base_link</parent>
+      <child>right_wheel</child>
+      <axis>
+        <xyz>0 0 1</xyz>
+        <dynamics><damping>0.01</damping></dynamics>
+      </axis>
+    </joint>
+
+    <!-- ── Plugins ───────────────────────────────────────────────────────── -->
+
+    <!-- Differential drive: rear wheels are the driven pair -->
+    <plugin filename="gz-sim-diff-drive-system"
+            name="gz::sim::systems::DiffDrive">
+      <left_joint>left_wheel_joint</left_joint>
+      <right_joint>right_wheel_joint</right_joint>
+      <wheel_separation>0.34</wheel_separation>   <!-- centre-to-centre: 2×0.17 -->
+      <wheel_radius>0.08</wheel_radius>
+      <odom_publish_frequency>50</odom_publish_frequency>
+      <topic>cmd_vel</topic>
+      <odom_topic>odom</odom_topic>
+      <tf_topic>tf</tf_topic>
+      <frame_id>odom</frame_id>
+      <child_frame_id>base_link</child_frame_id>
+      <min_velocity>-0.5</min_velocity>
+      <max_velocity>0.5</max_velocity>
+      <min_acceleration>-1</min_acceleration>
+      <max_acceleration>1</max_acceleration>
+    </plugin>
+
+    <!-- Joint state publisher for all 4 wheel joints -->
+    <plugin filename="gz-sim-joint-state-publisher-system"
+            name="gz::sim::systems::JointStatePublisher">
+      <topic>joint_states</topic>
+      <joint_name>left_wheel_joint</joint_name>
+      <joint_name>right_wheel_joint</joint_name>
+      <joint_name>front_left_wheel_joint</joint_name>
+      <joint_name>front_right_wheel_joint</joint_name>
+    </plugin>
+
+  </model>
+</sdf>

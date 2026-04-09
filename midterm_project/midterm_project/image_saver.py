@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """
 Phase 61-65: Image Saver Node
-- Subscribes to /drone/front_rgb and /drone/front_depth
+- Subscribes to /drone/down_mono (downward RGB) and /drone/front_depth
 - Saves every Nth RGB frame as PNG
 - Saves corresponding depth frames as 16-bit PNG
+- Saves camera intrinsics (K matrix) to camera_info.json on first receipt
 - Records odometry (position + quaternion) per saved frame
 - Exports poses.json on shutdown
 - Verifies inter-frame pixel difference > 1.0 (no identical frames)
@@ -11,9 +12,9 @@ Phase 61-65: Image Saver Node
 
 import rclpy
 from rclpy.node import Node
-from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy
+from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy, HistoryPolicy
 
-from sensor_msgs.msg import Image
+from sensor_msgs.msg import Image, CameraInfo
 from px4_msgs.msg import VehicleOdometry
 
 import cv2
@@ -29,10 +30,9 @@ class ImageSaver(Node):
         super().__init__('image_saver')
 
         # Parameters
-        self.declare_parameter('save_every_nth', 10)
+        self.declare_parameter('save_every_nth', 5)
         self.declare_parameter('output_dir',
-            os.path.expanduser(
-                '~/ses598-space-robotics-and-ai-2026/midterm_project/data/images'))
+            os.path.expanduser('~/midterm_flight_data'))
         self.declare_parameter('min_frame_diff', 1.0)
 
         self.save_every_nth = self.get_parameter('save_every_nth').value
@@ -45,41 +45,67 @@ class ImageSaver(Node):
         os.makedirs(self.rgb_dir,   exist_ok=True)
         os.makedirs(self.depth_dir, exist_ok=True)
 
-        # QoS
+        # QoS: camera topics — BEST_EFFORT + VOLATILE + depth=10
         qos_sensor = QoSProfile(
             reliability=ReliabilityPolicy.BEST_EFFORT,
             durability=DurabilityPolicy.VOLATILE,
+            history=HistoryPolicy.KEEP_LAST,
             depth=10
         )
+        # QoS: PX4 topics — BEST_EFFORT + TRANSIENT_LOCAL + KEEP_LAST + depth=1
         qos_px4 = QoSProfile(
             reliability=ReliabilityPolicy.BEST_EFFORT,
             durability=DurabilityPolicy.TRANSIENT_LOCAL,
-            depth=10
+            history=HistoryPolicy.KEEP_LAST,
+            depth=1
         )
 
         # Subscribers
         self.rgb_sub = self.create_subscription(
-            Image, '/drone/front_rgb',
+            Image, '/drone/down_mono',
             self.rgb_callback, qos_sensor)
         self.depth_sub = self.create_subscription(
             Image, '/drone/front_depth',
             self.depth_callback, qos_sensor)
+        self.camera_info_sub = self.create_subscription(
+            CameraInfo, '/drone/front_depth/camera_info',
+            self.camera_info_callback, qos_sensor)
         self.odom_sub = self.create_subscription(
             VehicleOdometry, '/fmu/out/vehicle_odometry',
             self.odom_callback, qos_px4)
 
         # State
-        self.bridge         = CvBridge()
-        self.frame_count    = 0
-        self.saved_count    = 0
-        self.last_rgb       = None
-        self.last_depth     = None
-        self.last_odom      = None
-        self.poses          = []
+        self.bridge            = CvBridge()
+        self.frame_count       = 0
+        self.saved_count       = 0
+        self.last_rgb          = None
+        self.last_depth        = None
+        self.last_odom         = None
+        self.poses             = []
+        self.camera_info_saved = False
 
         self.get_logger().info(
             f'ImageSaver initialized — saving every {self.save_every_nth}th frame '
             f'to {self.output_dir}')
+
+    def camera_info_callback(self, msg: CameraInfo):
+        if self.camera_info_saved:
+            return
+        k = list(msg.k)  # 3x3 row-major intrinsics matrix
+        info = {
+            'width': msg.width,
+            'height': msg.height,
+            'K': k,
+            'distortion_model': msg.distortion_model,
+            'D': list(msg.d),
+        }
+        path = os.path.join(self.output_dir, 'camera_info.json')
+        with open(path, 'w') as f:
+            json.dump(info, f, indent=2)
+        self.camera_info_saved = True
+        self.get_logger().info(f'Saved camera intrinsics to {path}')
+        # Unsubscribe — we only need the first message
+        self.destroy_subscription(self.camera_info_sub)
 
     def odom_callback(self, msg: VehicleOdometry):
         self.last_odom = {
