@@ -37,6 +37,7 @@ setup(
             'planning_node = midterm_project.planning_node:main',
             'image_saver = midterm_project.image_saver:main',
             'rover_navigator = midterm_project.rover_navigator:main',
+            'demo_image_saver = midterm_project.demo_image_saver:main',
         ],
     },
 )
