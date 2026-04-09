@@ -134,8 +134,33 @@ if path_b is None:
     if path_b is None:
         sys.exit("Still no path — costmap issue")
 
-path_world = [cell_to_world(r, c, meta) for r, c in path_b]
-print(f"Path: {len(path_world)} waypoints")
+path_world_raw = [cell_to_world(r, c, meta) for r, c in path_b]
+print(f"Path: {len(path_world_raw)} raw waypoints")
+
+# ── Interpolate to PATH_SAMPLE_DIST_M spacing (≥50 poses) ────────────────────
+PATH_SAMPLE_DIST_M = 0.25  # sample every 0.25m → ~59 poses for 14.66m path
+path_world = [path_world_raw[0]]
+acc = 0.0
+for i in range(1, len(path_world_raw)):
+    px, py = path_world_raw[i-1]
+    cx2, cy2 = path_world_raw[i]
+    seg = math.hypot(cx2 - px, cy2 - py)
+    remaining = seg
+    while acc + remaining >= PATH_SAMPLE_DIST_M:
+        frac = (PATH_SAMPLE_DIST_M - acc) / remaining
+        ix = px + frac * (cx2 - px)
+        iy = py + frac * (cy2 - py)
+        path_world.append((ix, iy))
+        # advance along this segment
+        px = ix; py = iy
+        remaining = remaining - (PATH_SAMPLE_DIST_M - acc)
+        acc = 0.0
+    acc += remaining
+# Ensure goal is included
+if math.hypot(path_world[-1][0] - path_world_raw[-1][0],
+              path_world[-1][1] - path_world_raw[-1][1]) > 1e-3:
+    path_world.append(path_world_raw[-1])
+print(f"Interpolated: {len(path_world)} waypoints @ {PATH_SAMPLE_DIST_M}m spacing")
 
 # ── Convert to rover_path.json format ────────────────────────────────────────
 path_entries = []
