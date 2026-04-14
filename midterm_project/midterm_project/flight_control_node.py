@@ -25,17 +25,23 @@ from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
 
 # ── Mission waypoints ────────────────────────────────────────────────────────
+# Full-terrain lawnmower: covers all obstacles with 5 m padding on each side.
+# Obstacle bounding box: x ∈ [-12.2, 11.5], y ∈ [-13.75, 10.0]
+# With 5 m padding: x ∈ [-17, 17], y ∈ [-19, 15], 3 m row spacing.
+# Altitude 8.0 m AGL — above the tallest obstacle (pillar: 7.0 m, spire: 6.0 m).
 WAYPOINTS = [
-    (-10.0, -10.0, 5.0),
-    ( 10.0, -10.0, 5.0),
-    ( 10.0,  -7.0, 5.0),
-    (-10.0,  -7.0, 5.0),
-    (-10.0,  -4.0, 5.0),
-    ( 10.0,  -4.0, 5.0),
-    ( 10.0,  -1.0, 5.0),
-    (-10.0,  -1.0, 5.0),
-    (-10.0,   2.0, 5.0),
-    ( 10.0,   2.0, 5.0),
+    (-17.0, -19.0, 8.0), ( 17.0, -19.0, 8.0),
+    ( 17.0, -16.0, 8.0), (-17.0, -16.0, 8.0),
+    (-17.0, -13.0, 8.0), ( 17.0, -13.0, 8.0),
+    ( 17.0, -10.0, 8.0), (-17.0, -10.0, 8.0),
+    (-17.0,  -7.0, 8.0), ( 17.0,  -7.0, 8.0),
+    ( 17.0,  -4.0, 8.0), (-17.0,  -4.0, 8.0),
+    (-17.0,  -1.0, 8.0), ( 17.0,  -1.0, 8.0),
+    ( 17.0,   2.0, 8.0), (-17.0,   2.0, 8.0),
+    (-17.0,   5.0, 8.0), ( 17.0,   5.0, 8.0),
+    ( 17.0,   8.0, 8.0), (-17.0,   8.0, 8.0),
+    (-17.0,  11.0, 8.0), ( 17.0,  11.0, 8.0),
+    ( 17.0,  14.0, 8.0), (-17.0,  14.0, 8.0),
 ]
 
 # ── Controller parameters ────────────────────────────────────────────────────
@@ -43,7 +49,7 @@ KP            = 0.5     # proportional gain
 VXY_MAX       = 1.5     # m/s horizontal clamp
 VZ_MAX        = 1.0     # m/s vertical clamp
 WP_REACH_DIST = 1.5     # m — waypoint reached threshold
-TAKEOFF_ALT   = 4.5     # m — consider takeoff complete above this altitude
+TAKEOFF_ALT   = 7.5     # m — consider takeoff complete above this altitude (above tallest obstacle)
 LAND_ALT      = 0.5     # m — consider landing complete below this altitude
 HOVER_SECS    = 3.0     # s — hover duration before landing
 

@@ -163,20 +163,10 @@ echo "  PHASE B — ROVER NAVIGATION"
 echo "  $(date '+%H:%M:%S')"
 echo "════════════════════════════════════════"
 
-# ── 1. Spawn rover ────────────────────────────────────────────────────────────
-echo "[B1] Spawning Mars rover at (8, 0, 0.3)…"
-gz service -s /world/${WORLD_NAME}/create \
-  --reqtype gz.msgs.EntityFactory \
-  --reptype gz.msgs.Boolean \
-  --timeout 5000 \
-  --req "sdf_filename: '$(realpath ${ROVER_SDF})', name: 'mars_rover', \
-pose: {position: {x: 8, y: 0, z: 0.3}}" \
-  2>/dev/null && echo "     Rover spawned" || echo "     WARNING: spawn may have failed"
-sleep 3
-
-# ── 2. Bridge rover topics ────────────────────────────────────────────────────
+# Rover is already in demo_world.sdf at (10,-4) — no spawn needed.
+# ── 1. Bridge rover topics ────────────────────────────────────────────────────
 # Rover DiffDrive uses global /cmd_vel and /odom (no model namespace in GZ)
-echo "[B2] Starting rover bridge…"
+echo "[B1] Starting rover bridge…"
 ros2 run ros_gz_bridge parameter_bridge \
   "/cmd_vel@geometry_msgs/msg/Twist]gz.msgs.Twist" \
   "/odom@nav_msgs/msg/Odometry[gz.msgs.Odometry" \
@@ -189,8 +179,8 @@ PIDS+=($ROVER_BRIDGE_PID)
 sleep 3
 echo "     Rover bridge PID: ${ROVER_BRIDGE_PID}"
 
-# ── 3. Start rover driver ─────────────────────────────────────────────────────
-echo "[B3] Starting rover driver (following A* path)…"
+# ── 2. Start rover driver ─────────────────────────────────────────────────────
+echo "[B2] Starting rover driver (following A* path around obstacles)…"
 ros2 run midterm_project rover_driver 2>&1 | tee /tmp/rover_driver.log &
 ROVER_PID=$!
 PIDS+=($ROVER_PID)

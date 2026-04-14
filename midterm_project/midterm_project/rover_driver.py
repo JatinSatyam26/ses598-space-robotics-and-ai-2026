@@ -143,6 +143,16 @@ class RoverDriver(Node):
         desired_yaw = math.atan2(dy, dx)
         angle_err = _angle_diff(desired_yaw, self.yaw)
 
+        # Report large turns — indicates path detouring around an obstacle
+        if abs(angle_err) > 0.5 and not getattr(self, '_last_turn_reported', False):
+            deg = math.degrees(angle_err)
+            self.get_logger().info(
+                f'Turning {deg:+.1f} deg to avoid obstacle cluster '
+                f'(wp {self.wp_idx+1}/{len(self.waypoints)})')
+            self._last_turn_reported = True
+        elif abs(angle_err) <= 0.3:
+            self._last_turn_reported = False
+
         twist = Twist()
         twist.angular.z = KP_YAW * angle_err
         if abs(angle_err) < ANGLE_OK:
