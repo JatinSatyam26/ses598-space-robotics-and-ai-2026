@@ -20,6 +20,8 @@ setup(
          [f for f in glob('models/planetary_terrain/*') if os.path.isfile(f)]),
         (os.path.join('share', package_name, 'models', 'planetary_terrain', 'meshes'),
          glob('models/planetary_terrain/meshes/*')),
+        (os.path.join('share', package_name, 'models', 'flying_drone'),
+         glob('models/flying_drone/*')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -38,6 +40,8 @@ setup(
             'image_saver = midterm_project.image_saver:main',
             'rover_navigator = midterm_project.rover_navigator:main',
             'demo_image_saver = midterm_project.demo_image_saver:main',
+            'flight_control_node = midterm_project.flight_control_node:main',
+            'rover_driver = midterm_project.rover_driver:main',
         ],
     },
 )
