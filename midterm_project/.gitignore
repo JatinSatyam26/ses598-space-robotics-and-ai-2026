@@ -24,3 +24,6 @@ worlds/jezero_c/ortho/ESP_*.xml
 # Gazebo session logs
 worlds/*.log
 /tmp/gz_jezero_*.log
+
+# GDAL raster metadata sidecars (regenerable)
+*.aux.xml
