@@ -8,3 +8,19 @@ deps/
 *.pth
 *.so
 data/
+# Added Apr 17, 2026 — Tier-3 world build + session hygiene
+
+# Raw HiRISE TIFFs (too large for GitHub 100MB limit; download from S3)
+# See worlds/jezero_c/README.md for re-download URLs
+worlds/jezero_c/dtm/DTM_*.tif
+worlds/jezero_c/dtm/DTM_*.xml
+worlds/jezero_c/ortho/ESP_*.tif
+worlds/jezero_c/ortho/ESP_*.xml
+
+# Editor / script-generated backups (forensic but clutter git)
+*.bak.*
+*.backup_*
+
+# Gazebo session logs
+worlds/*.log
+/tmp/gz_jezero_*.log
