@@ -22,6 +22,8 @@ setup(
          glob('models/planetary_terrain/meshes/*')),
         (os.path.join('share', package_name, 'models', 'flying_drone'),
          glob('models/flying_drone/*')),
+        (os.path.join('share', package_name, 'models', 'habitat_dome'),
+         glob('models/habitat_dome/*')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -42,6 +44,8 @@ setup(
             'demo_image_saver = midterm_project.demo_image_saver:main',
             'flight_control_node = midterm_project.flight_control_node:main',
             'rover_driver = midterm_project.rover_driver:main',
+            'smart_flight_node = midterm_project.smart_flight_node:main',
+            'smart_rover_node = midterm_project.smart_rover_node:main',
         ],
     },
 )
