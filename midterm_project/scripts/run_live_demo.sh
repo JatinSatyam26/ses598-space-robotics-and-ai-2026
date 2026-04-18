@@ -17,8 +17,7 @@ source /opt/ros/jazzy/setup.bash 2>/dev/null || true
   source "$HOME/ros2_ws/install/setup.bash" || true
 
 # Set Gazebo model path (include PX4 models for x500_base)
-PX4_MODELS="$HOME/PX4-Autopilot/Tools/simulation/gz/models"
-export GZ_SIM_RESOURCE_PATH="${PROJECT_DIR}/models:${PX4_MODELS}:${GZ_SIM_RESOURCE_PATH:-}"
+export GZ_SIM_RESOURCE_PATH="${PROJECT_DIR}/models:${GZ_SIM_RESOURCE_PATH:-}"
 
 echo "=========================================="
 echo "  MARS SCOUT MISSION — LIVE DEMO"
