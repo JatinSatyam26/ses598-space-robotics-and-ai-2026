@@ -65,5 +65,24 @@
       </link>
     </model>
 
+    <!-- Mission entities (Phase 5 integration, Apr 18 2026) -->
+    <!-- drone, skids resting on terrain (terrain_z=0.023, clearance=0.2) -->
+    <include>
+      <uri>model://flying_drone</uri>
+      <name>drone</name>
+      <pose>5 -20 0.223 0 0 0</pose>
+    </include>
+    <!-- rover, wheels resting on terrain (terrain_z=0.041, clearance=0.12) -->
+    <include>
+      <uri>model://mars_rover</uri>
+      <name>rover</name>
+      <pose>5 -18.5 0.161 0 0 0</pose>
+    </include>
+    <!-- habitat dome, sits on terrain (terrain_z=0.230) -->
+    <include>
+      <uri>model://habitat_dome</uri>
+      <name>habitat_dome</name>
+      <pose>20 -20 0.230 0 0 0</pose>
+    </include>
   </world>
 </sdf>
