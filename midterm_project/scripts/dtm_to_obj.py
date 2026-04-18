@@ -1,0 +1,242 @@
+"""
+Convert a Float32 GeoTIFF DTM into a triangulated Wavefront .obj mesh
+with UV coordinates and per-vertex normals.
+
+Inputs (relative to project root, by default):
+  - worlds/jezero_c/dtm/jezero_c_heightmap_65.tif  (Float32, 65x65, 0.0-3.08m)
+
+Outputs:
+  - worlds/jezero_c/terrain_mesh/jezero_terrain.obj
+  - worlds/jezero_c/terrain_mesh/jezero_terrain.mtl
+  - Texture referenced by .mtl: worlds/jezero_c/ortho/jezero_c_texture_257.png
+
+Why per-vertex normals matter: dartsim's mesh collision loader rejects submeshes
+where normal count != vertex count. An OBJ with no 'vn' lines has normal count 0,
+which fails the check and causes a downstream segfault in OdeMesh::fillArrays.
+
+Why pure osgeo.gdal + struct (no numpy): Ubuntu 24.04 ships python3-gdal 3.8.4
+compiled against NumPy 1.26, but the system NumPy is 2.4.4. The gdal_array C
+extension fails to import. Using band.ReadRaster() + struct.unpack() sidesteps
+this entirely.
+
+Geometry conventions:
+  - X axis: east-west (-32 to +32 m for 64m extent)
+  - Y axis: south-north (+32 to -32 m, so raster row 0 = +Y in world)
+  - Z axis: up (elevation in meters, 0 = local min)
+  - CCW winding as viewed from +Z (surface faces up)
+
+Usage:
+  cd to project root, then:
+  python3 scripts/dtm_to_obj.py
+
+  Or with explicit paths via env vars:
+  DTM_PATH=... TEXTURE_PATH=... OUT_DIR=... python3 scripts/dtm_to_obj.py
+"""
+
+import os
+import struct
+import math
+from osgeo import gdal
+
+# --- Config (override via env vars if needed) ---
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+
+DTM_PATH = os.environ.get(
+    "DTM_PATH",
+    os.path.join(PROJECT_ROOT, "worlds/jezero_c/dtm/jezero_c_heightmap_65.tif"),
+)
+TEXTURE_PATH = os.environ.get(
+    "TEXTURE_PATH",
+    os.path.join(PROJECT_ROOT, "worlds/jezero_c/ortho/jezero_c_texture_257.png"),
+)
+OUT_DIR = os.environ.get(
+    "OUT_DIR",
+    os.path.join(PROJECT_ROOT, "worlds/jezero_c/terrain_mesh"),
+)
+OUT_OBJ = os.path.join(OUT_DIR, "jezero_terrain.obj")
+OUT_MTL = os.path.join(OUT_DIR, "jezero_terrain.mtl")
+
+# Terrain physical extent (matches intended Gazebo <size>64 64 3.08</size>)
+EXTENT_X = float(os.environ.get("EXTENT_X", "64.0"))
+EXTENT_Y = float(os.environ.get("EXTENT_Y", "64.0"))
+
+os.makedirs(OUT_DIR, exist_ok=True)
+
+# --- Read DTM ---
+print(f"Reading DTM: {DTM_PATH}")
+src = gdal.Open(DTM_PATH)
+if src is None:
+    raise SystemExit(f"FATAL: could not open DTM at {DTM_PATH}")
+
+w = src.RasterXSize
+h = src.RasterYSize
+print(f"DTM dimensions: {w} x {h} pixels")
+
+band = src.GetRasterBand(1)
+raw = band.ReadRaster(0, 0, w, h, buf_type=gdal.GDT_Float32)
+elevations = list(struct.unpack(f"{w*h}f", raw))
+
+pmin = min(elevations)
+pmax = max(elevations)
+print(f"Elevation range: min={pmin:.3f} m, max={pmax:.3f} m, relief={pmax-pmin:.3f} m")
+
+# --- Build vertex and UV arrays ---
+vertices = []
+uvs = []
+
+for j in range(h):
+    for i in range(w):
+        x = -EXTENT_X / 2.0 + (i / (w - 1)) * EXTENT_X
+        y = +EXTENT_Y / 2.0 - (j / (h - 1)) * EXTENT_Y
+        z = elevations[j * w + i]
+        vertices.append((x, y, z))
+
+        u = i / (w - 1)
+        v = 1.0 - j / (h - 1)
+        uvs.append((u, v))
+
+num_vertices = len(vertices)
+print(f"Generated {num_vertices} vertices")
+
+# --- Build faces (triangles) ---
+faces = []
+
+def vid(i, j):
+    return 1 + j * w + i  # OBJ is 1-indexed
+
+for j in range(h - 1):
+    for i in range(w - 1):
+        v00 = vid(i,     j)
+        v10 = vid(i + 1, j)
+        v01 = vid(i,     j + 1)
+        v11 = vid(i + 1, j + 1)
+        # CCW from +Z: (v00, v01, v11) and (v00, v11, v10)
+        faces.append((v00, v01, v11))
+        faces.append((v00, v11, v10))
+
+num_faces = len(faces)
+print(f"Generated {num_faces} triangles")
+
+# --- Compute per-vertex normals ---
+def subtract(a, b):
+    return (a[0] - b[0], a[1] - b[1], a[2] - b[2])
+
+def cross(a, b):
+    return (
+        a[1] * b[2] - a[2] * b[1],
+        a[2] * b[0] - a[0] * b[2],
+        a[0] * b[1] - a[1] * b[0],
+    )
+
+def normalize(v):
+    m = math.sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2])
+    if m < 1e-12:
+        return (0.0, 0.0, 1.0)
+    return (v[0]/m, v[1]/m, v[2]/m)
+
+vn_accum = [[0.0, 0.0, 0.0] for _ in range(num_vertices + 1)]
+
+print("Computing per-vertex normals...")
+for v1_idx, v2_idx, v3_idx in faces:
+    p1 = vertices[v1_idx - 1]
+    p2 = vertices[v2_idx - 1]
+    p3 = vertices[v3_idx - 1]
+    e1 = subtract(p2, p1)
+    e2 = subtract(p3, p1)
+    fn = cross(e1, e2)
+    for vi in (v1_idx, v2_idx, v3_idx):
+        vn_accum[vi][0] += fn[0]
+        vn_accum[vi][1] += fn[1]
+        vn_accum[vi][2] += fn[2]
+
+normals = [None]
+for vi in range(1, num_vertices + 1):
+    normals.append(normalize(tuple(vn_accum[vi])))
+
+up_count = sum(1 for n in normals[1:] if n[2] > 0.5)
+print(f"  Vertex normals with clear +Z component: {up_count}/{num_vertices}")
+if up_count < num_vertices * 0.9:
+    print("  WARNING: many normals not pointing up - check winding order")
+
+# --- Write MTL file ---
+mtl_content = f"""# Jezero_C terrain material
+# Generated by scripts/dtm_to_obj.py
+newmtl jezero_terrain_mat
+Ka 0.3 0.2 0.15
+Kd 0.9 0.7 0.55
+Ks 0.1 0.08 0.06
+Ns 10.0
+d 1.0
+illum 2
+map_Kd {TEXTURE_PATH}
+"""
+
+with open(OUT_MTL, "w") as f:
+    f.write(mtl_content)
+print(f"Wrote {OUT_MTL}")
+
+# --- Write OBJ file ---
+obj_lines = []
+obj_lines.append("# Jezero_C terrain mesh (with per-vertex normals)")
+obj_lines.append("# Generated by scripts/dtm_to_obj.py")
+obj_lines.append(f"# Source DTM: {DTM_PATH}")
+obj_lines.append(f"# Extent: {EXTENT_X} x {EXTENT_Y} m, elevation 0.0 to {pmax:.3f} m")
+obj_lines.append(f"# {w}x{h} vertex grid, {num_faces} triangles")
+obj_lines.append(f"mtllib {os.path.basename(OUT_MTL)}")
+obj_lines.append("o jezero_terrain")
+obj_lines.append("")
+
+for x, y, z in vertices:
+    obj_lines.append(f"v {x:.6f} {y:.6f} {z:.6f}")
+obj_lines.append("")
+
+for u, v_coord in uvs:
+    obj_lines.append(f"vt {u:.6f} {v_coord:.6f}")
+obj_lines.append("")
+
+for vi in range(1, num_vertices + 1):
+    n = normals[vi]
+    obj_lines.append(f"vn {n[0]:.6f} {n[1]:.6f} {n[2]:.6f}")
+obj_lines.append("")
+
+obj_lines.append("usemtl jezero_terrain_mat")
+obj_lines.append("s off")
+for v1, v2, v3 in faces:
+    obj_lines.append(f"f {v1}/{v1}/{v1} {v2}/{v2}/{v2} {v3}/{v3}/{v3}")
+
+with open(OUT_OBJ, "w") as f:
+    f.write("\n".join(obj_lines) + "\n")
+
+obj_size = os.path.getsize(OUT_OBJ)
+mtl_size = os.path.getsize(OUT_MTL)
+
+print(f"Wrote {OUT_OBJ} ({obj_size} bytes)")
+print()
+print("=== Summary ===")
+print(f"  Vertices:  {num_vertices}")
+print(f"  UVs:       {num_vertices}")
+print(f"  Normals:   {num_vertices}")
+print(f"  Triangles: {num_faces}")
+print(f"  OBJ size:  {obj_size} bytes")
+print(f"  MTL size:  {mtl_size} bytes")
+print()
+
+# --- Post-write sanity ---
+with open(OUT_OBJ) as f:
+    content = f.read()
+v_count = content.count("\nv ")
+vt_count = content.count("\nvt ")
+vn_count = content.count("\nvn ")
+f_count = content.count("\nf ")
+print(f"Post-write verification (line counts from disk):")
+print(f"  v  lines: {v_count}")
+print(f"  vt lines: {vt_count}")
+print(f"  vn lines: {vn_count}")
+print(f"  f  lines: {f_count}")
+
+all_ok = (v_count == num_vertices and vt_count == num_vertices
+          and vn_count == num_vertices and f_count == num_faces)
+if all_ok:
+    print("OBJ structure: PASS")
+else:
+    print("WARNING: line counts mismatch")
