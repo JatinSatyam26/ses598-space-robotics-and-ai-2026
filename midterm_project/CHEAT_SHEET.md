@@ -90,14 +90,15 @@
 - **(Phase 7 — Apr 20)** Ground-truth pose logger `scripts/groundtruth_logger.py` built and verified. Logs world + rig-frame poses for drone/rover/dome at ~0.5 Hz to `/tmp/phase7_groundtruth.csv`. Integrated into run_live_demo.sh. First full-mission CSV: 217 rows, 133.9s, all 3 entities, zero gaps.
 - **(Failure A fixed — Apr 20)** `smart_flight_node.py` now subtracts `odom_origin` (first odom reading) from all XY readings. Drone now surveys correct region: rig x[−2,18] y[−5,5] = world x[3,23] y[−25,−15].
 - **(Phase 6 clean baseline — Apr 20)** Full end-to-end re-run on jezero_c.sdf: drone surveyed correct region (249 occupied cells), landed at z=0.134m with controller disabled, rover planned 19-WP A* path and reported "ARRIVED at habitat dome" (1.08m from dome center per odom). Ground-truth: rover physical displacement only 1.523m (Failure C persists — 90% wheel slip). Drone max world-z=3.747m.
+- **(Failure C fixed — Apr 20)** Rover traction fixed: added terrain surface μ=3.0 + contact params to jezero_c.sdf; added 6WD (front + rear DiffDrive plugins with separate odom topics) to mars_rover/model.sdf. Physical displacement: 1.523m → 13.783m (9x improvement). Rover now physically traverses terrain to dome.
 
 ### In progress
-- Nothing. Phase 6 clean baseline + Phase 7 complete. Failure A fixed. Next: Phase 8 (Confidence-Rich Grid Mapping) or diagnose Failure C root cause.
+- Nothing. Both Failure A and Failure C resolved. Clean end-to-end run verified. Next: Phase 8 (Confidence-Rich Grid Mapping).
 
 ### Broken (diagnosed, not yet fixed)
 - **Rover localization:** reads start-relative DiffDrive odom as world-frame. Rover is always offset by its rig-relative spawn. Fix via TRN stack (Phases 8-10), not hardcoded offset. **Note: with Phase 5 rig at (5, -20), the world-frame offset is even larger than before — but the rover node still thinks it starts at (0,0) in its own rig-relative frame, which is consistent with the experimental design.**
 - **Drone survey coord frame (Failure A, Apr 20):** FIXED (commit c829a03). OdometryPublisher gives world-frame absolute pose; smart_flight_node.py now captures `odom_origin` on first callback and subtracts it. Drone surveys correct rig x[−2,18] y[−5,5] = world x[3,23] y[−25,−15]. ~~Fix: subtract initial odom pose from all subsequent odom readings in the node.~~
-- **Rover odom 90% wheel slip (Failure C, Apr 20):** DiffDrive odom:actual=10:1 on HiRISE mesh terrain. Rover declared ARRIVED at odom (15.1,0.1) while physically 1.5m from spawn, 13.3m from dome. Fix via TRN stack (Phases 8-10).
+- **Rover odom 90% wheel slip (Failure C, Apr 20):** FIXED (commit 543effb). Terrain μ=3.0 + 6WD. Physical displacement 1.523m → 13.783m. ~~Fix via TRN stack (Phases 8-10).~~
 - Status printer in launch script shows `WP 0/8` always. Cosmetic, dishonest, known.
 - Simulation does not self-terminate after mission complete. Operational nuisance.
 
