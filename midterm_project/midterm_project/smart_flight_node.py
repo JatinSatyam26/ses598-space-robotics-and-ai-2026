@@ -16,7 +16,6 @@ from sensor_msgs.msg import LaserScan, Image
 from std_msgs.msg import Header
 import numpy as np
 import math
-import time
 import subprocess
 
 
@@ -30,9 +29,15 @@ class SmartFlightNode(Node):
             history=HistoryPolicy.KEEP_LAST,
             depth=1
         )
+        map_qos = QoSProfile(
+            reliability=ReliabilityPolicy.RELIABLE,
+            durability=DurabilityPolicy.TRANSIENT_LOCAL,
+            history=HistoryPolicy.KEEP_LAST,
+            depth=1
+        )
 
         self.cmd_pub = self.create_publisher(Twist, '/drone/cmd_vel', 10)
-        self.map_pub = self.create_publisher(OccupancyGrid, '/drone/occupancy_grid', 10)
+        self.map_pub = self.create_publisher(OccupancyGrid, '/drone/occupancy_grid', map_qos)
 
         self.create_subscription(Odometry, '/drone/odom', self.odom_cb, gz_qos)
         self.create_subscription(LaserScan, '/drone/rangefinder', self.range_cb, gz_qos)
@@ -52,13 +57,18 @@ class SmartFlightNode(Node):
         self.survey_alt = 3.0
         self.land_home = np.array([1.0, 0.0])  # XY to fly back to before landing
 
-        # Occupancy grid
+        # Occupancy grid — log-odds Bayesian mapping
         self.grid_resolution = 0.25
         self.grid_x_min, self.grid_x_max = -2.0, 18.0
         self.grid_y_min, self.grid_y_max = -5.0, 5.0
         self.grid_width = int((self.grid_x_max - self.grid_x_min) / self.grid_resolution)
         self.grid_height = int((self.grid_y_max - self.grid_y_min) / self.grid_resolution)
-        self.occupancy_counts = np.zeros((self.grid_height, self.grid_width), dtype=np.int32)
+        # NaN = never observed (publishes as -1 / unknown)
+        self.log_odds = np.full((self.grid_height, self.grid_width), np.nan, dtype=np.float32)
+        # log-odds update magnitudes: free = log(0.3/0.7), occ = log(0.9/0.1)
+        self.L_FREE = -0.847
+        self.L_OCC = 2.197
+        self.L_CLAMP = 10.0
 
         # Survey lanes — 5 lanes at y=-2, -1, 0, 1, 2 for denser coverage
         self.survey_waypoints = self._generate_lawnmower()
@@ -102,42 +112,23 @@ class SmartFlightNode(Node):
             self.has_range = True
 
     def depth_cb(self, msg):
-        if not self.has_odom or self.state != 'SURVEY':
-            return
-        try:
-            if msg.encoding == '32FC1':
-                depth = np.frombuffer(msg.data, dtype=np.float32).reshape(
-                    msg.height, msg.width)
-            elif msg.encoding == '16UC1':
-                depth = np.frombuffer(msg.data, dtype=np.uint16).reshape(
-                    msg.height, msg.width).astype(np.float32) / 1000.0
-            else:
-                return
-            center_row = msg.height // 2
-            strip = depth[center_row - 5:center_row + 5, :]
-            fx = msg.width / (2.0 * math.tan(1.047 / 2.0))
-            for col in range(0, msg.width, 4):
-                d = np.nanmedian(strip[:, col])
-                if np.isnan(d) or d < 0.3 or d > 10.0:
-                    continue
-                angle = math.atan2(col - msg.width / 2.0, fx) + self.yaw
-                wx = self.pos[0] + d * math.cos(angle)
-                wy = self.pos[1] + d * math.sin(angle)
-                if d < self.pos[2] - 0.3:
-                    gx = int((wx - self.grid_x_min) / self.grid_resolution)
-                    gy = int((wy - self.grid_y_min) / self.grid_resolution)
-                    if 0 <= gx < self.grid_width and 0 <= gy < self.grid_height:
-                        self.occupancy_counts[gy, gx] += 1
-        except Exception as e:
-            self.get_logger().warn(f'Depth error: {e}')
+        # Depth camera data received but not used for grid updates — forward-facing
+        # camera at 3m AGL produces false positives from sloped terrain since the
+        # depth-to-height geometry requires the camera tilt angle which isn't modelled
+        # here. Rangefinder (downward) is the primary obstacle sensor.
+        pass
+
+    def _update_cell(self, gx, gy, delta):
+        if 0 <= gx < self.grid_width and 0 <= gy < self.grid_height:
+            if np.isnan(self.log_odds[gy, gx]):
+                self.log_odds[gy, gx] = 0.0
+            self.log_odds[gy, gx] = float(np.clip(
+                self.log_odds[gy, gx] + delta, -self.L_CLAMP, self.L_CLAMP))
 
     def _mark_obstacle(self, gx, gy, weight=2, radius=2):
-        """Mark obstacle at (gx,gy) and surrounding cells in the grid."""
         for dy in range(-radius, radius + 1):
             for dx in range(-radius, radius + 1):
-                nx, ny = gx + dx, gy + dy
-                if 0 <= nx < self.grid_width and 0 <= ny < self.grid_height:
-                    self.occupancy_counts[ny, nx] += weight
+                self._update_cell(gx + dx, gy + dy, self.L_OCC * (weight / 4.0))
 
     def control_loop(self):
         cmd = Twist()
@@ -176,21 +167,25 @@ class SmartFlightNode(Node):
             cmd.linear.x = speed * dx / dist
             cmd.linear.y = speed * dy / dist
 
-            # Altitude hold
+            # Altitude hold + log-odds grid update
             if self.has_range:
                 alt_error = self.survey_alt - self.rangefinder_alt
                 cmd.linear.z = float(np.clip(alt_error * 1.2, -0.8, 0.8))
 
-                # -- Primary obstacle detection via rangefinder --
-                # At 2m survey alt, rocks (0.3-0.5m tall) give readings of 1.5-1.7m.
-                # Threshold 0.25m below survey alt catches anything > 0.25m tall.
+                gx = int((self.pos[0] - self.grid_x_min) / self.grid_resolution)
+                gy = int((self.pos[1] - self.grid_y_min) / self.grid_resolution)
+
                 if self.rangefinder_alt < (self.survey_alt - 0.25):
-                    gx = int((self.pos[0] - self.grid_x_min) / self.grid_resolution)
-                    gy = int((self.pos[1] - self.grid_y_min) / self.grid_resolution)
-                    self._mark_obstacle(gx, gy, weight=4, radius=2)
+                    # Obstacle below — occupied update; A* handles safety margin via inflation
+                    self._mark_obstacle(gx, gy, weight=4, radius=1)
                     self.get_logger().debug(
                         f'Obstacle below! range={self.rangefinder_alt:.2f}m '
                         f'at ({self.pos[0]:.1f},{self.pos[1]:.1f})')
+                else:
+                    # Ground at expected altitude — free-space update (±1 cell footprint)
+                    for dy in range(-1, 2):
+                        for dx in range(-1, 2):
+                            self._update_cell(gx + dx, gy + dy, self.L_FREE)
 
                 if self.rangefinder_alt < 1.5:
                     cmd.linear.z = 1.5  # emergency climb
@@ -282,26 +277,28 @@ class SmartFlightNode(Node):
         grid.info.origin.position.y = self.grid_y_min
         grid.info.origin.position.z = 0.0
 
-        flat = self.occupancy_counts.flatten()
-        data = np.zeros(len(flat), dtype=np.int8)
-        max_count = max(flat.max(), 1)
-        for i in range(len(flat)):
-            if flat[i] > 0:
-                data[i] = min(100, int(flat[i] * 100 / max_count))
+        # Three-value output: -1 unknown | 0 free | 51-100 occupied
+        # Occupied threshold L > 1.5 requires at least one clean rangefinder hit
+        # (L_OCC=2.197) so transient single-tick false positives don't appear.
+        data = []
+        n_unknown = n_free = n_occupied = 0
+        for val in self.log_odds.flatten():
+            if np.isnan(val):
+                data.append(-1)
+                n_unknown += 1
+            elif val > 1.5:
+                pct = 51 + int(min(49, (val - 1.5) / (self.L_CLAMP - 1.5) * 49))
+                data.append(pct)
+                n_occupied += 1
+            else:
+                data.append(0)
+                n_free += 1
 
-        grid.data = data.tolist()
+        grid.data = data
         self.map_pub.publish(grid)
-
-        occupied = int(np.sum(flat > 0))
         self.get_logger().info(
-            f'OccupancyGrid published: {self.grid_width}x{self.grid_height}, '
-            f'{occupied} occupied cells')
-
-        # Re-publish several times for reliability
-        for i in range(5):
-            time.sleep(0.4)
-            grid.header.stamp = self.get_clock().now().to_msg()
-            self.map_pub.publish(grid)
+            f'OccupancyGrid published: {self.grid_width}x{self.grid_height} — '
+            f'{n_free} free, {n_occupied} occupied, {n_unknown} unknown')
 
 
 def main(args=None):

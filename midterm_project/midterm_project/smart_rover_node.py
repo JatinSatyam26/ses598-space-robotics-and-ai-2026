@@ -31,7 +31,13 @@ class SmartRoverNode(Node):
         self.cmd_pub = self.create_publisher(Twist, '/rover/cmd_vel', 10)
         self.create_subscription(Odometry, '/rover/odom', self.odom_cb, gz_qos)
         self.create_subscription(LaserScan, '/rover/lidar', self.lidar_cb, gz_qos)
-        self.create_subscription(OccupancyGrid, '/drone/occupancy_grid', self.map_cb, 10)
+        map_qos = QoSProfile(
+            reliability=ReliabilityPolicy.RELIABLE,
+            durability=DurabilityPolicy.TRANSIENT_LOCAL,
+            history=HistoryPolicy.KEEP_LAST,
+            depth=1
+        )
+        self.create_subscription(OccupancyGrid, '/drone/occupancy_grid', self.map_cb, map_qos)
 
         self.pos = np.array([0.0, 1.5, 0.0])
         self.yaw = 0.0
@@ -186,9 +192,12 @@ class SmartRoverNode(Node):
                               (-1, -1), (-1, 1), (1, -1), (1, 1)]:
                 nx, ny = cx + ddx, cy + ddy
                 if 0 <= nx < w and 0 <= ny < h and (nx, ny) not in closed:
-                    if inflated[ny, nx] > 20:
+                    cell_val = int(inflated[ny, nx])
+                    if cell_val > 20:
                         continue
-                    cost = 1.414 if (ddx != 0 and ddy != 0) else 1.0
+                    # Unknown cells (-1) are passable but cost 3× to prefer surveyed corridors
+                    unknown_mult = 3.0 if cell_val < 0 else 1.0
+                    cost = (1.414 if (ddx != 0 and ddy != 0) else 1.0) * unknown_mult
                     ng = g_score[(cx, cy)] + cost
                     if ng < g_score.get((nx, ny), float('inf')):
                         g_score[(nx, ny)] = ng
