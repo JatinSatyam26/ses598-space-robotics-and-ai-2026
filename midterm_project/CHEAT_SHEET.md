@@ -86,11 +86,16 @@
 - **(Phase 5 — Apr 18)** Drone + rover + habitat_dome integrated into `jezero_c.sdf` as `<include>` blocks. Rig at offset (5, -20) in world frame, worst-case slope 2.14° across all spawn and path-sample points.
 - **(Phase 5 — Apr 18)** All three entities reach stable zero-drift equilibrium within 10s of simulated physics on real HiRISE mesh terrain. Verified by 20s settle test: Δpose(t=10, t=20) < 10 μm in all components.
 
+- **(Phase 6 — Apr 20)** End-to-end integration test on jezero_c.sdf: PARTIAL. Drone surveys wrong region (coord frame mismatch), rover 90% wheel slip (odom:actual=10:1, physical 1.5m vs odom 15m). Drone altitude hold confirmed working (world-z modulated to maintain ~3m AGL, max z=4.55m over variable terrain). No crash, no rollover. Three run_live_demo.sh infrastructure bugs fixed.
+- **(Phase 7 — Apr 20)** Ground-truth pose logger `scripts/groundtruth_logger.py` built and verified. Logs world + rig-frame poses for drone/rover/dome at ~0.5 Hz to `/tmp/phase7_groundtruth.csv`. Integrated into run_live_demo.sh. First full-mission CSV: 217 rows, 133.9s, all 3 entities, zero gaps.
+
 ### In progress
-- Nothing actively in progress. Phase 5 complete + committed + pushed. Next session is Phase 6.
+- Nothing. Phase 7 complete. Next: fix drone coord frame (Failure A), then Phase 8.
 
 ### Broken (diagnosed, not yet fixed)
 - **Rover localization:** reads start-relative DiffDrive odom as world-frame. Rover is always offset by its rig-relative spawn. Fix via TRN stack (Phases 8-10), not hardcoded offset. **Note: with Phase 5 rig at (5, -20), the world-frame offset is even larger than before — but the rover node still thinks it starts at (0,0) in its own rig-relative frame, which is consistent with the experimental design.**
+- **Drone survey coord frame (Failure A, Apr 20):** OdometryPublisher gives world-frame absolute pose; smart_flight_node.py uses rig-frame survey waypoints without subtracting initial world pose (5,−20). Drone surveys world x[−2,18] y[−5,5] instead of correct world x[3,23] y[−25,−15]. Fix: subtract initial odom pose from all subsequent odom readings in the node.
+- **Rover odom 90% wheel slip (Failure C, Apr 20):** DiffDrive odom:actual=10:1 on HiRISE mesh terrain. Rover declared ARRIVED at odom (15.1,0.1) while physically 1.5m from spawn, 13.3m from dome. Fix via TRN stack (Phases 8-10).
 - Status printer in launch script shows `WP 0/8` always. Cosmetic, dishonest, known.
 - Simulation does not self-terminate after mission complete. Operational nuisance.
 
@@ -98,7 +103,6 @@
 - **Terrain visually darker than expected in Gazebo GUI.** Ortho PNG is confirmed ochre stand-alone, but terrain in-scene reads closer to dark chocolate. Gazebo tone-mapping / ogre2 auto-exposure interacting with the bright butterscotch sky background. Not blocking. Address in Phase 2.5 polish pass if time (reserved for last).
 
 ### Not yet built
-- Ground-truth pose logger (validation baseline)
 - Scan-to-map matcher
 - Pose fusion node
 - Modified rover node consuming fused world-frame pose
@@ -237,7 +241,9 @@ jezero_c.sdf [committed, 3144 bytes]
 - Flight node log (runtime): `/tmp/smart_flight.log`
 - Rover node log (runtime): `/tmp/smart_rover.log`
 - Bridge log: `/tmp/bridge.log`
-- Launch script: `scripts/run_live_demo.sh` (no longer references PX4)
+- Launch script: `scripts/run_live_demo.sh` (no longer references PX4; includes ground-truth logger)
+- Ground-truth logger: `scripts/groundtruth_logger.py` — output `/tmp/phase7_groundtruth.csv` (CSV: wall_time, entity, world_xyz, rig_xy, rpy)
+- Phase 6 report: `PHASE6_REPORT.md`
 - Tier-1/2 world: `worlds/mars_mission.sdf` (flat ground, legacy)
 - **Tier-3 world:** `worlds/jezero_c.sdf` (Phase 5 integrated)
 - **Tier-3 asset dir:** `worlds/jezero_c/` (see `worlds/jezero_c/README.md`)
@@ -325,10 +331,11 @@ jezero_c.sdf [committed, 3144 bytes]
 - [x] **Phase 2 (heightmap):** Tried heightmap, diagnosed system-wide gap, pivoted
 - [x] **Phase 2 (mesh):** Mesh-based terrain, collision verified via box-drop test (Apr 17)
 - [x] **Phase 5:** Integrate drone + rover + habitat_dome into jezero_c.sdf (Apr 18). Rig offset (5, -20), stable equilibrium verified.
-- [ ] **Phase 6:** Verify survey + navigation on new terrain. Run `scripts/run_live_demo.sh` with `WORLD_SDF=worlds/jezero_c.sdf` override.
+- [x] **Phase 6:** Integration test on jezero_c.sdf (Apr 20). PARTIAL — drone coord frame bug + rover 90% slip. Three infra bugs fixed. Full findings in PHASE6_REPORT.md.
+- [x] **Phase 7:** Ground-truth pose logger `scripts/groundtruth_logger.py` (Apr 20). Integrated into run_live_demo.sh. Verified: 217-row CSV over full mission.
 - [ ] **Phase 3:** Mastcam-Z hero meshes (Sketchfab CC-Attribution), chop in Blender
 - [ ] **Phase 4:** Poly Haven scatter meshes, Golombek-Rapp distribution
-- [ ] **Phase 7:** Ground-truth logger
+- [ ] **Phase 8:** Confidence-Rich Grid Mapping on drone (after Failure A fix)
 - [ ] **Phase 8:** Confidence-Rich Grid Mapping on drone
 - [ ] **Phase 9:** Scan-to-map matcher (hierarchical correlation + branch-and-bound)
 - [ ] **Phase 10:** Pose fusion EKF
@@ -342,18 +349,14 @@ Note: Phases 3 and 4 moved AFTER Phase 6 in the roadmap because Phase 6 will tel
 
 ## Next-action checklist — START OF NEXT SESSION
 
-State at start of next session: Phase 5 complete, committed, pushed. Drone + rover + dome load on mesh terrain, reach stable rest poses.
+State at start of next session: Phase 6 PARTIAL + Phase 7 complete (Apr 20). Two active failures logged. Ground-truth logger running. 20 days to May 10 deadline (May 4 other assignment still pending).
 
 **Suggested next moves, in order of value:**
 
-1. **Phase 6 end-to-end test.** Launch `scripts/run_live_demo.sh` with `WORLD_SDF=worlds/jezero_c.sdf` override. This exercises: world load, drone takeoff, survey pattern over uneven terrain, occupancy grid construction from real LaserScan returns, rover A* planning, rover driving from rig origin to dome over 15 m of mesh topography, arrival detection.
-2. **Expect issues** (pre-known, the cheat sheet forecast these at Phase 5 completion):
-   - **DiffDrive on sloped mesh faces** — behavior may differ from flat plane. Watch for wheel-slip artifacts.
-   - **LaserScan returns from angled terrain** — may generate false occupancy cells along drive path. The drone's survey laser scans the ground; if the ground is uneven, it may look like "obstacles."
-   - **Drone altitude hold with rangefinder over variable-z terrain** — the rangefinder reads terrain distance, not world z. Controller needs to cope.
-3. **When Phase 6 surfaces issues**, don't fix them prematurely. Log what breaks, decide which to fix and which to route around via better sensing (i.e., defer to Phases 8-10 where the TRN stack addresses root causes).
-
-**Alternative next move (if Phase 6 reveals unfixable sensing issues):** skip to Phase 7 (ground-truth logger) first, because Phase 7 gives us the objective baseline to compare everything else against. Phase 7 is ~1-2 hrs.
+1. **Fix Failure A (drone coord frame).** In `smart_flight_node.py`: capture initial odom reading on first callback, subtract it from all subsequent odom before feeding into survey/landing logic. Test on flat `mars_mission.sdf` first (known-good baseline), then re-run on `jezero_c.sdf`. Expected result: drone surveys world x[3,23] y[−25,−15] (rig area) instead of central terrain.
+2. **Diagnose Failure C root cause.** Run `ros2 topic echo /rover/odom` during a short jezero_c.sdf demo. If topic is silent → bridge topic mismatch (fix bridge). If topic active but wildly wrong → wheel slip only → defer to Phase 8 TRN.
+3. **Phase 8: Confidence-Rich Grid Mapping.** After Failure A fixed, drone surveys correct region. Build confidence-weighted occupancy grid (replaces binary grid). Input for Phase 9 scan-matcher.
+4. **Key file:** `scripts/groundtruth_logger.py` — run alongside every demo. Output `/tmp/phase7_groundtruth.csv` is the Phase 8-10 validation baseline.
 
 ---
 
@@ -374,6 +377,9 @@ State at start of next session: Phase 5 complete, committed, pushed. Drone + rov
 - **Apr 18 x500 vendoring:** discovered `flying_drone/model.sdf` depended on `model://x500_base` which lived in `~/PX4-Autopilot/`. Vendored it locally (BSD-3), now project is PX4-install-free.
 - **Apr 18 integration script churn:** v1 aborted on `--` in XML comment (caught by pre-validate). v2 wrote but ElementTree reformatted file cosmetically. v3 switched to targeted string splice — clean diff, surgical change. Lesson: parse-reserialize for reshaping, string splice for appending.
 - **Apr 18 libEGL false alarm:** spent ~1h debugging libEGL warnings as a driver problem, including a reboot. Warnings were cosmetic all along; GUI-mode launches worked fine, headless `-s` mode is what's actually broken on this setup. Lesson: truth-criterion is "did the world load in the GUI," not "is the log short."
+- **Apr 20 Phase 6 infra bugs (3):** run_live_demo.sh missing PROJ_IGNORE_CELESTIAL_BODY, missing worlds/ in GZ_SIM_RESOURCE_PATH, WORLD_SDF hardcoded. All fixed in same session.
+- **Apr 20 Failure A (drone coord frame):** OdometryPublisher gives world-frame; flight node treats odom as rig-relative without initial-pose subtraction. Drone surveyed central terrain instead of rig region. Fix deferred — in smart_flight_node.py.
+- **Apr 20 Failure C (rover wheel slip):** DiffDrive odom 10:1 vs physical on HiRISE mesh. Rover physically stationary while node declared ARRIVED. Fix via TRN (Phases 8-10).
 
 ---
 

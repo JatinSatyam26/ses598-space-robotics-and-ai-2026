@@ -126,6 +126,12 @@ ROVER_PID=$!
 PIDS+=($ROVER_PID)
 echo "  Rover node PID: ${ROVER_PID}"
 
+echo "Starting ground-truth pose logger..."
+python3 "${SCRIPT_DIR}/groundtruth_logger.py" > /tmp/gt_logger.log 2>&1 &
+GT_PID=$!
+PIDS+=($GT_PID)
+echo "  GT logger PID: ${GT_PID} — output: /tmp/phase7_groundtruth.csv"
+
 echo ""
 echo "=========================================="
 echo "  ALL SYSTEMS RUNNING"
