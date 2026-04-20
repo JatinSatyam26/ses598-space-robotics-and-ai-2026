@@ -17,7 +17,8 @@ source /opt/ros/jazzy/setup.bash 2>/dev/null || true
   source "$HOME/ros2_ws/install/setup.bash" || true
 
 # Set Gazebo model path (include PX4 models for x500_base)
-export GZ_SIM_RESOURCE_PATH="${PROJECT_DIR}/models:${GZ_SIM_RESOURCE_PATH:-}"
+export PROJ_IGNORE_CELESTIAL_BODY=YES
+export GZ_SIM_RESOURCE_PATH="${PROJECT_DIR}/models:${PROJECT_DIR}/worlds:${GZ_SIM_RESOURCE_PATH:-}"
 
 echo "=========================================="
 echo "  MARS SCOUT MISSION — LIVE DEMO"
@@ -28,7 +29,8 @@ echo "  Project: ${PROJECT_DIR}"
 echo "  GZ resource path: ${GZ_SIM_RESOURCE_PATH:0:80}"
 echo ""
 
-WORLD_SDF="${PROJECT_DIR}/worlds/mars_mission.sdf"
+WORLD_SDF="${WORLD_SDF:-${PROJECT_DIR}/worlds/mars_mission.sdf}"
+[[ "$WORLD_SDF" != /* ]] && WORLD_SDF="${PROJECT_DIR}/${WORLD_SDF}"
 [[ ! -f "$WORLD_SDF" ]] && { echo "ERROR: $WORLD_SDF not found"; exit 1; }
 
 # ── Process tracking ──────────────────────────────────────────────────────────
