@@ -45,6 +45,7 @@ class SmartFlightNode(Node):
         self.rangefinder_alt = 0.0
         self.has_odom = False
         self.has_range = False
+        self.odom_origin = None
 
         # Survey at 3m AGL — rocks are 0.35-0.55m tall, giving 2.45-2.65m rangefinder
         # readings. Detection threshold (survey_alt - 0.25 = 2.75m) catches anything > 0.25m tall.
@@ -82,8 +83,12 @@ class SmartFlightNode(Node):
         return waypoints
 
     def odom_cb(self, msg):
-        self.pos[0] = msg.pose.pose.position.x
-        self.pos[1] = msg.pose.pose.position.y
+        px = msg.pose.pose.position.x
+        py = msg.pose.pose.position.y
+        if self.odom_origin is None:
+            self.odom_origin = np.array([px, py])
+        self.pos[0] = px - self.odom_origin[0]
+        self.pos[1] = py - self.odom_origin[1]
         self.pos[2] = msg.pose.pose.position.z
         q = msg.pose.pose.orientation
         siny = 2.0 * (q.w * q.z + q.x * q.y)
