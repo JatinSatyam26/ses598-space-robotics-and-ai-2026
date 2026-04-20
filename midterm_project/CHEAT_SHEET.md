@@ -1,5 +1,5 @@
 # SES 598 — Technical Invariants Cheat Sheet
-**Last updated: April 18, 2026. Phase 5 complete. Read after the transcript, keep open during work.**
+**Last updated: April 20, 2026. Phase 7 complete + Failure A fixed. Clean Phase 6 baseline achieved. Read after the transcript, keep open during work.**
 
 ---
 
@@ -86,15 +86,17 @@
 - **(Phase 5 — Apr 18)** Drone + rover + habitat_dome integrated into `jezero_c.sdf` as `<include>` blocks. Rig at offset (5, -20) in world frame, worst-case slope 2.14° across all spawn and path-sample points.
 - **(Phase 5 — Apr 18)** All three entities reach stable zero-drift equilibrium within 10s of simulated physics on real HiRISE mesh terrain. Verified by 20s settle test: Δpose(t=10, t=20) < 10 μm in all components.
 
-- **(Phase 6 — Apr 20)** End-to-end integration test on jezero_c.sdf: PARTIAL. Drone surveys wrong region (coord frame mismatch), rover 90% wheel slip (odom:actual=10:1, physical 1.5m vs odom 15m). Drone altitude hold confirmed working (world-z modulated to maintain ~3m AGL, max z=4.55m over variable terrain). No crash, no rollover. Three run_live_demo.sh infrastructure bugs fixed.
+- **(Phase 6 — Apr 20)** End-to-end integration test on jezero_c.sdf: PARTIAL on first run (coord frame mismatch). Three run_live_demo.sh infrastructure bugs fixed. Drone altitude hold confirmed working (world-z modulated to maintain ~3m AGL, max z=4.55m over variable terrain). No crash, no rollover.
 - **(Phase 7 — Apr 20)** Ground-truth pose logger `scripts/groundtruth_logger.py` built and verified. Logs world + rig-frame poses for drone/rover/dome at ~0.5 Hz to `/tmp/phase7_groundtruth.csv`. Integrated into run_live_demo.sh. First full-mission CSV: 217 rows, 133.9s, all 3 entities, zero gaps.
+- **(Failure A fixed — Apr 20)** `smart_flight_node.py` now subtracts `odom_origin` (first odom reading) from all XY readings. Drone now surveys correct region: rig x[−2,18] y[−5,5] = world x[3,23] y[−25,−15].
+- **(Phase 6 clean baseline — Apr 20)** Full end-to-end re-run on jezero_c.sdf: drone surveyed correct region (249 occupied cells), landed at z=0.134m with controller disabled, rover planned 19-WP A* path and reported "ARRIVED at habitat dome" (1.08m from dome center per odom). Ground-truth: rover physical displacement only 1.523m (Failure C persists — 90% wheel slip). Drone max world-z=3.747m.
 
 ### In progress
-- Nothing. Phase 7 complete. Next: fix drone coord frame (Failure A), then Phase 8.
+- Nothing. Phase 6 clean baseline + Phase 7 complete. Failure A fixed. Next: Phase 8 (Confidence-Rich Grid Mapping) or diagnose Failure C root cause.
 
 ### Broken (diagnosed, not yet fixed)
 - **Rover localization:** reads start-relative DiffDrive odom as world-frame. Rover is always offset by its rig-relative spawn. Fix via TRN stack (Phases 8-10), not hardcoded offset. **Note: with Phase 5 rig at (5, -20), the world-frame offset is even larger than before — but the rover node still thinks it starts at (0,0) in its own rig-relative frame, which is consistent with the experimental design.**
-- **Drone survey coord frame (Failure A, Apr 20):** OdometryPublisher gives world-frame absolute pose; smart_flight_node.py uses rig-frame survey waypoints without subtracting initial world pose (5,−20). Drone surveys world x[−2,18] y[−5,5] instead of correct world x[3,23] y[−25,−15]. Fix: subtract initial odom pose from all subsequent odom readings in the node.
+- **Drone survey coord frame (Failure A, Apr 20):** FIXED (commit c829a03). OdometryPublisher gives world-frame absolute pose; smart_flight_node.py now captures `odom_origin` on first callback and subtracts it. Drone surveys correct rig x[−2,18] y[−5,5] = world x[3,23] y[−25,−15]. ~~Fix: subtract initial odom pose from all subsequent odom readings in the node.~~
 - **Rover odom 90% wheel slip (Failure C, Apr 20):** DiffDrive odom:actual=10:1 on HiRISE mesh terrain. Rover declared ARRIVED at odom (15.1,0.1) while physically 1.5m from spawn, 13.3m from dome. Fix via TRN stack (Phases 8-10).
 - Status printer in launch script shows `WP 0/8` always. Cosmetic, dishonest, known.
 - Simulation does not self-terminate after mission complete. Operational nuisance.
