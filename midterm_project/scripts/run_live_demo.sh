@@ -49,6 +49,7 @@ cleanup() {
   pkill -9 -f "parameter_bridge" 2>/dev/null || true
   pkill -9 -f "smart_flight_node" 2>/dev/null || true
   pkill -9 -f "smart_rover_node" 2>/dev/null || true
+  pkill -9 -f "trn_node" 2>/dev/null || true
   echo "  Done."
 }
 trap cleanup EXIT
@@ -125,6 +126,13 @@ ros2 run midterm_project smart_rover_node 2>&1 | tee /tmp/smart_rover.log &
 ROVER_PID=$!
 PIDS+=($ROVER_PID)
 echo "  Rover node PID: ${ROVER_PID}"
+
+# ── 6. Start TRN node ────────────────────────────────────────────────────────
+echo "Starting TRN node (scan-to-map pose corrector)..."
+ros2 run midterm_project trn_node 2>&1 | tee /tmp/trn.log &
+TRN_PID=$!
+PIDS+=($TRN_PID)
+echo "  TRN node PID: ${TRN_PID}"
 
 echo "Starting ground-truth pose logger..."
 python3 "${SCRIPT_DIR}/groundtruth_logger.py" > /tmp/gt_logger.log 2>&1 &

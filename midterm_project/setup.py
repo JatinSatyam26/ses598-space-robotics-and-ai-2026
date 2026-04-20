@@ -46,6 +46,7 @@ setup(
             'rover_driver = midterm_project.rover_driver:main',
             'smart_flight_node = midterm_project.smart_flight_node:main',
             'smart_rover_node = midterm_project.smart_rover_node:main',
+            'trn_node = midterm_project.trn_node:main',
         ],
     },
 )
