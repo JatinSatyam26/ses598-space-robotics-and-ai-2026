@@ -98,5 +98,114 @@
       <name>habitat_dome</name>
       <pose>20 -20 0.230 0 0 0</pose>
     </include>
+
+    <!-- Phase 3: Rock models for TRN feature enrichment (Apr 20 2026).
+         6 rocks alternating left/right of rover path at rig y=+/-1.5 to -2.
+         Height 0.45-0.52m exceeds the 0.25m rangefinder detection threshold,
+         so the drone marks them occupied during survey, giving TRN a richer
+         likelihood field to match against.
+         Poses: (world_x, world_y, terrain_z + rock_h/2 + 0.02) 0 0 yaw -->
+    <model name="rock_a">
+      <static>true</static>
+      <pose>9.0 -18.0 0.323 0 0 0.0</pose>
+      <link name="link">
+        <collision name="col">
+          <geometry><box><size>0.55 0.40 0.45</size></box></geometry>
+        </collision>
+        <visual name="vis">
+          <geometry><box><size>0.55 0.40 0.45</size></box></geometry>
+          <material>
+            <ambient>0.42 0.28 0.18 1</ambient>
+            <diffuse>0.52 0.35 0.22 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="rock_b">
+      <static>true</static>
+      <pose>11.0 -22.0 0.368 0 0 0.5</pose>
+      <link name="link">
+        <collision name="col">
+          <geometry><box><size>0.60 0.35 0.50</size></box></geometry>
+        </collision>
+        <visual name="vis">
+          <geometry><box><size>0.60 0.35 0.50</size></box></geometry>
+          <material>
+            <ambient>0.44 0.30 0.19 1</ambient>
+            <diffuse>0.54 0.37 0.23 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="rock_c">
+      <static>true</static>
+      <pose>13.0 -18.0 0.372 0 0 1.1</pose>
+      <link name="link">
+        <collision name="col">
+          <geometry><box><size>0.50 0.45 0.40</size></box></geometry>
+        </collision>
+        <visual name="vis">
+          <geometry><box><size>0.50 0.45 0.40</size></box></geometry>
+          <material>
+            <ambient>0.40 0.27 0.17 1</ambient>
+            <diffuse>0.50 0.34 0.21 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="rock_d">
+      <static>true</static>
+      <pose>15.0 -22.0 0.360 0 0 0.3</pose>
+      <link name="link">
+        <collision name="col">
+          <geometry><box><size>0.65 0.38 0.48</size></box></geometry>
+        </collision>
+        <visual name="vis">
+          <geometry><box><size>0.65 0.38 0.48</size></box></geometry>
+          <material>
+            <ambient>0.43 0.29 0.18 1</ambient>
+            <diffuse>0.53 0.36 0.22 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="rock_e">
+      <static>true</static>
+      <pose>17.0 -18.0 0.459 0 0 0.8</pose>
+      <link name="link">
+        <collision name="col">
+          <geometry><box><size>0.48 0.42 0.52</size></box></geometry>
+        </collision>
+        <visual name="vis">
+          <geometry><box><size>0.48 0.42 0.52</size></box></geometry>
+          <material>
+            <ambient>0.41 0.28 0.17 1</ambient>
+            <diffuse>0.51 0.35 0.21 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="rock_f">
+      <static>true</static>
+      <pose>18.0 -22.0 0.451 0 0 1.4</pose>
+      <link name="link">
+        <collision name="col">
+          <geometry><box><size>0.58 0.44 0.46</size></box></geometry>
+        </collision>
+        <visual name="vis">
+          <geometry><box><size>0.58 0.44 0.46</size></box></geometry>
+          <material>
+            <ambient>0.43 0.29 0.18 1</ambient>
+            <diffuse>0.53 0.36 0.22 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
   </world>
 </sdf>
