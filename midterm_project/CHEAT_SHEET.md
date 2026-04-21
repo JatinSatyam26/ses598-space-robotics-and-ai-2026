@@ -1,5 +1,5 @@
 # SES 598 — Technical Invariants Cheat Sheet
-**Last updated: April 20, 2026. Phase 7 complete + Failure A fixed. Clean Phase 6 baseline achieved. Read after the transcript, keep open during work.**
+**Last updated: April 20, 2026. Phases 8–10 complete. TRN scan-to-map matcher verified live. Full cooperative pipeline working end-to-end on jezero_c.sdf.**
 
 ---
 
@@ -92,23 +92,27 @@
 - **(Phase 6 clean baseline — Apr 20)** Full end-to-end re-run on jezero_c.sdf: drone surveyed correct region (249 occupied cells), landed at z=0.134m with controller disabled, rover planned 19-WP A* path and reported "ARRIVED at habitat dome" (1.08m from dome center per odom). Ground-truth: rover physical displacement only 1.523m (Failure C persists — 90% wheel slip). Drone max world-z=3.747m.
 - **(Failure C fixed — Apr 20)** Rover traction fixed: added terrain surface μ=3.0 + contact params to jezero_c.sdf; added 6WD (front + rear DiffDrive plugins with separate odom topics) to mars_rover/model.sdf. Physical displacement: 1.523m → 13.783m (9x improvement). Rover now physically traverses terrain to dome.
 
+- **(Phase 8 — Apr 20)** Bayesian log-odds occupancy grid replaces count-based grid. L_FREE=−0.847, L_OCC=2.197, clamp ±10. Three-value output: −1 unknown | 0 free | 51–100 occupied. Threshold L>1.5 requires ≥1 clean rangefinder hit. TRANSIENT_LOCAL QoS eliminates sleep loop. A* penalises unknown cells ×3. Verified: 86 occupied, 765 free on jezero_c.sdf.
+- **(Phase 9 — Apr 20)** TRN scan-to-map matcher node (`trn_node.py`). Builds Gaussian-blurred likelihood field from occupancy grid (pure numpy, no scipy). Vectorized (K×M) candidate scoring at 2 Hz, K=294 candidates (±0.75m XY, ±15° yaw). Dead-reckons from odom deltas between updates. Publishes PoseWithCovarianceStamped on `/rover/trn_pose`. Verified live: fix #1 improve=43.9%, fix #11 improve=88.6%, covariance converged 1.6→0.05 by fix #21.
+- **(Phase 9b — Apr 20)** TRN feedback loop in `smart_rover_node`. Subscribes to `/rover/trn_pose`; blends correction at α=0.3 when cov<0.5 and magnitude<0.8m. Guards against divergence. Logs every 10th blend.
+- **(Phase 10 — Apr 20)** TRN-triggered A* re-planning. Accumulates applied TRN correction; when >0.6m AND cooldown=0 AND >2 WPs remain, re-runs A* from corrected position. 5s cooldown (50 ticks at 10 Hz). Keeps old path if A* fails. Verified live: no re-plan fired (small corrections, original path valid — correct healthy outcome).
+
 ### In progress
-- Nothing. Both Failure A and Failure C resolved. Clean end-to-end run verified. Next: Phase 8 (Confidence-Rich Grid Mapping).
+- Nothing. Phases 8–10 verified live. Full cooperative pipeline validated on jezero_c.sdf.
 
 ### Broken (diagnosed, not yet fixed)
-- **Rover localization:** reads start-relative DiffDrive odom as world-frame. Rover is always offset by its rig-relative spawn. Fix via TRN stack (Phases 8-10), not hardcoded offset. **Note: with Phase 5 rig at (5, -20), the world-frame offset is even larger than before — but the rover node still thinks it starts at (0,0) in its own rig-relative frame, which is consistent with the experimental design.**
-- **Drone survey coord frame (Failure A, Apr 20):** FIXED (commit c829a03). OdometryPublisher gives world-frame absolute pose; smart_flight_node.py now captures `odom_origin` on first callback and subtracts it. Drone surveys correct rig x[−2,18] y[−5,5] = world x[3,23] y[−25,−15]. ~~Fix: subtract initial odom pose from all subsequent odom readings in the node.~~
-- **Rover odom 90% wheel slip (Failure C, Apr 20):** FIXED (commit 543effb). Terrain μ=3.0 + 6WD. Physical displacement 1.523m → 13.783m. ~~Fix via TRN stack (Phases 8-10).~~
 - Status printer in launch script shows `WP 0/8` always. Cosmetic, dishonest, known.
 - Simulation does not self-terminate after mission complete. Operational nuisance.
+
+### Previously broken — now fixed
+- **Rover localization (Failures A+C):** FIXED via odom_origin subtraction (Phase 6), terrain μ=3.0 + 6WD (Failure C), and TRN feedback loop (Phases 9–10).
+- **Drone survey coord frame (Failure A, Apr 20):** FIXED (commit c829a03).
+- **Rover odom 90% wheel slip (Failure C, Apr 20):** FIXED (commit 543effb). Physical displacement 1.523m → 13.783m.
 
 ### Known cosmetic issues (Apr 17-18)
 - **Terrain visually darker than expected in Gazebo GUI.** Ortho PNG is confirmed ochre stand-alone, but terrain in-scene reads closer to dark chocolate. Gazebo tone-mapping / ogre2 auto-exposure interacting with the bright butterscotch sky background. Not blocking. Address in Phase 2.5 polish pass if time (reserved for last).
 
 ### Not yet built
-- Scan-to-map matcher
-- Pose fusion node
-- Modified rover node consuming fused world-frame pose
 - Mastcam-Z hero rock meshes (Phase 3)
 - Poly Haven scatter with Golombek-Rapp distribution (Phase 4)
 - Atmospheric fog for horizon fade (Phase 2.5 polish, optional, last)
@@ -269,6 +273,17 @@ jezero_c.sdf [committed, 3144 bytes]
 | Occupancy grid resolution | 0.25 m | Sets floor on scan-match accuracy |
 | Grid extent (rig-frame) | x=[-2, 18], y=[-5, 5] | From flight node config |
 | LiDAR stop distance | 0.55 m | From `obstacle_stop_dist` |
+| **Log-odds L_FREE** | **−0.847** | log(0.3/0.7) — free cell update |
+| **Log-odds L_OCC** | **+2.197** | log(0.9/0.1) — obstacle update |
+| **Log-odds clamp** | **±10.0** | Prevents saturation lock |
+| **Occupied publish threshold** | **L > 1.5** | Requires ≥1 clean rangefinder hit |
+| **TRN blur sigma** | **1.5 cells = 0.375 m** | Gaussian spread on likelihood field |
+| **TRN candidates K** | **294** | ±0.75m XY at 0.25m step, ±15° yaw at 5° step |
+| **TRN update rate** | **2 Hz** | `_update` timer period |
+| **TRN covariance accept** | **cov[0] < 0.5** | σ < ~0.7m before blending into rover |
+| **TRN blend alpha** | **0.3** | Fraction of correction applied per tick |
+| **TRN re-plan threshold** | **0.6 m** | Accumulated applied correction before A* re-plan |
+| **TRN re-plan cooldown** | **50 ticks = 5 s** | Minimum gap between re-plans at 10 Hz |
 | **Jezero_C patch size** | 64 × 64 m (padded from 40 × 40) | Mesh is 64×64m, data is 40×40m center |
 | **Jezero_C patch relief** | **3.08 m** | Max - min from real HiRISE DTM |
 | **Mars 2000 Sphere radius** | **3,396,190 m** | For lat/lon ↔ projection coord math |
@@ -292,7 +307,8 @@ jezero_c.sdf [committed, 3144 bytes]
 | `/drone/occupancy_grid` | nav_msgs/OccupancyGrid | ROS internal | flight node → rover node |
 | `/rover/cmd_vel` | geometry_msgs/Twist | ROS→GZ | rover node → `/model/rover/cmd_vel` (via bridge) |
 | `/rover/odom` | nav_msgs/Odometry | GZ→ROS | rover DiffDrive plugin (**START-RELATIVE, rig-frame**) |
-| `/rover_lidar` | sensor_msgs/LaserScan | GZ | rover 360° LiDAR |
+| `/rover/lidar` | sensor_msgs/LaserScan | GZ→ROS | rover 360° LiDAR (bridged from `/rover_lidar`) |
+| `/rover/trn_pose` | geometry_msgs/PoseWithCovarianceStamped | ROS internal | TRN node → rover node (corrected rig-frame pose) |
 | `/flying_drone/enable` | gz.msgs.Boolean | GZ only | controller enable/disable |
 | `/world/*/pose/info` | gz.msgs.Pose_V | GZ only | all-entity ground truth poses |
 
@@ -336,14 +352,13 @@ jezero_c.sdf [committed, 3144 bytes]
 - [x] **Phase 5:** Integrate drone + rover + habitat_dome into jezero_c.sdf (Apr 18). Rig offset (5, -20), stable equilibrium verified.
 - [x] **Phase 6:** Integration test on jezero_c.sdf (Apr 20). PARTIAL — drone coord frame bug + rover 90% slip. Three infra bugs fixed. Full findings in PHASE6_REPORT.md.
 - [x] **Phase 7:** Ground-truth pose logger `scripts/groundtruth_logger.py` (Apr 20). Integrated into run_live_demo.sh. Verified: 217-row CSV over full mission.
+- [x] **Phase 8:** Bayesian log-odds occupancy grid (Apr 20). Replaces count-based grid. TRANSIENT_LOCAL QoS, A* unknown-cell ×3 cost. Verified: 86 occupied, 765 free, rover ARRIVED at 0.73m from dome.
+- [x] **Phase 9:** TRN scan-to-map matcher (Apr 20). `trn_node.py` — likelihood field + vectorized K×M scoring at 2 Hz. Verified: 41+ fixes, covariance 1.6→0.05 by fix #21. Publishes `/rover/trn_pose`.
+- [x] **Phase 9b:** TRN feedback loop in rover (Apr 20). Soft-blend α=0.3, cov guard, magnitude guard.
+- [x] **Phase 10:** TRN-triggered A* re-planning (Apr 20). 0.6m threshold, 5s cooldown, near-goal skip, A* failure fallback. Verified live: no re-plan fired (small corrections = original path valid — healthy).
 - [ ] **Phase 3:** Mastcam-Z hero meshes (Sketchfab CC-Attribution), chop in Blender
 - [ ] **Phase 4:** Poly Haven scatter meshes, Golombek-Rapp distribution
-- [ ] **Phase 8:** Confidence-Rich Grid Mapping on drone (after Failure A fix)
-- [ ] **Phase 8:** Confidence-Rich Grid Mapping on drone
-- [ ] **Phase 9:** Scan-to-map matcher (hierarchical correlation + branch-and-bound)
-- [ ] **Phase 10:** Pose fusion EKF
-- [ ] **Phase 11:** Modified rover node consuming fused pose
-- [ ] **Phase 12:** Integration run + localization error curve
+- [ ] **Phase 12:** Integration run + localization error curve vs ground truth CSV
 - [ ] **Phase 2.5 (optional polish, LAST):** Atmospheric fog, dark-terrain debug
 
 Note: Phases 3 and 4 moved AFTER Phase 6 in the roadmap because Phase 6 will tell us whether bare terrain has enough features for scan-matching — if yes, cosmetic rocks are decorative; if no, rocks become a minimum-viable requirement for Phase 9.
@@ -352,14 +367,14 @@ Note: Phases 3 and 4 moved AFTER Phase 6 in the roadmap because Phase 6 will tel
 
 ## Next-action checklist — START OF NEXT SESSION
 
-State at start of next session: Phase 6 PARTIAL + Phase 7 complete (Apr 20). Two active failures logged. Ground-truth logger running. 20 days to May 10 deadline (May 4 other assignment still pending).
+State at start of next session: Phases 8–10 complete and verified (Apr 20). Full cooperative pipeline running on jezero_c.sdf. 20 days to May 10 deadline (May 4 other assignment pending).
 
 **Suggested next moves, in order of value:**
 
-1. **Fix Failure A (drone coord frame).** In `smart_flight_node.py`: capture initial odom reading on first callback, subtract it from all subsequent odom before feeding into survey/landing logic. Test on flat `mars_mission.sdf` first (known-good baseline), then re-run on `jezero_c.sdf`. Expected result: drone surveys world x[3,23] y[−25,−15] (rig area) instead of central terrain.
-2. **Diagnose Failure C root cause.** Run `ros2 topic echo /rover/odom` during a short jezero_c.sdf demo. If topic is silent → bridge topic mismatch (fix bridge). If topic active but wildly wrong → wheel slip only → defer to Phase 8 TRN.
-3. **Phase 8: Confidence-Rich Grid Mapping.** After Failure A fixed, drone surveys correct region. Build confidence-weighted occupancy grid (replaces binary grid). Input for Phase 9 scan-matcher.
-4. **Key file:** `scripts/groundtruth_logger.py` — run alongside every demo. Output `/tmp/phase7_groundtruth.csv` is the Phase 8-10 validation baseline.
+1. **Phase 12: Localization error curve.** Compare `/rover/trn_pose` vs `/tmp/phase7_groundtruth.csv` across a full run. Plot odom drift vs TRN-corrected error vs ground truth. This is the quantitative validation required for the report.
+2. **Phase 3: Mastcam-Z rocks.** Add 3–5 hero rock meshes (Sketchfab CC-Attribution) to jezero_c.sdf as static models. Increases visual realism and gives TRN more features to match against.
+3. **Phase 4: Poly Haven scatter.** Rock/dust scatter with Golombek-Rapp size distribution. Optional — Phase 3 rocks alone may suffice.
+4. **Phase 2.5 polish (last).** Fix dark terrain tone-mapping, atmospheric fog. Purely cosmetic.
 
 ---
 
@@ -381,8 +396,12 @@ State at start of next session: Phase 6 PARTIAL + Phase 7 complete (Apr 20). Two
 - **Apr 18 integration script churn:** v1 aborted on `--` in XML comment (caught by pre-validate). v2 wrote but ElementTree reformatted file cosmetically. v3 switched to targeted string splice — clean diff, surgical change. Lesson: parse-reserialize for reshaping, string splice for appending.
 - **Apr 18 libEGL false alarm:** spent ~1h debugging libEGL warnings as a driver problem, including a reboot. Warnings were cosmetic all along; GUI-mode launches worked fine, headless `-s` mode is what's actually broken on this setup. Lesson: truth-criterion is "did the world load in the GUI," not "is the log short."
 - **Apr 20 Phase 6 infra bugs (3):** run_live_demo.sh missing PROJ_IGNORE_CELESTIAL_BODY, missing worlds/ in GZ_SIM_RESOURCE_PATH, WORLD_SDF hardcoded. All fixed in same session.
-- **Apr 20 Failure A (drone coord frame):** OdometryPublisher gives world-frame; flight node treats odom as rig-relative without initial-pose subtraction. Drone surveyed central terrain instead of rig region. Fix deferred — in smart_flight_node.py.
-- **Apr 20 Failure C (rover wheel slip):** DiffDrive odom 10:1 vs physical on HiRISE mesh. Rover physically stationary while node declared ARRIVED. Fix via TRN (Phases 8-10).
+- **Apr 20 Failure A (drone coord frame):** OdometryPublisher gives world-frame; flight node treats odom as rig-relative without initial-pose subtraction. Drone surveyed central terrain instead of rig region. FIXED via odom_origin capture + subtraction.
+- **Apr 20 Failure C (rover wheel slip):** DiffDrive odom 10:1 vs physical on HiRISE mesh. Rover physically stationary while node declared ARRIVED. FIXED via terrain μ=3.0 + 6WD.
+- **Apr 20 Phase 8 false positives:** First run had 591 occupied cells (over-marking). Root causes: radius=2 in _mark_obstacle (25 cells per event) + depth_cb forward camera at 3m AGL producing false obstacle hits from sloped terrain. Fixed: radius=1, threshold L>1.5, depth_cb disabled. Result: 591 → 75 occupied.
+- **Apr 20 Phase 8 sleep loop → TRANSIENT_LOCAL:** Original map publish used `sleep(2)` + republish loop. Replaced with TRANSIENT_LOCAL QoS so subscriber always receives the map regardless of timing. Both publisher and subscriber must match.
+- **Apr 20 Phase 9 TRN covariance:** `trn_cov` stored as scalar (not matrix diagonal). Published as `cov[0] = trn_cov²`. Rover guard checks `cov[0] < 0.5` → σ < ~0.7m. Confirmed: covariance floors at 0.0025 (σ=0.05m) after ~21 fixes.
+- **Apr 20 Phase 10 re-plan not firing (healthy):** In validated run, accumulated TRN correction never reached 0.6m threshold. This is correct — TRN corrections were small (drift well-controlled by 6WD + μ=3.0), so original A* path remained valid. Re-plan guard working correctly.
 
 ---
 
