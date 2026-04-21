@@ -38,10 +38,10 @@ class TRNNode(Node):
     BLUR_SIGMA = 1.5          # cells — Gaussian blur width for likelihood field
     SEARCH_XY = 0.75          # metres each side in XY search
     SEARCH_XY_STEP = 0.25     # metres per XY step
-    SEARCH_YAW = 0.26         # radians each side in yaw search (~15°)
+    SEARCH_YAW = 0.087        # radians each side in yaw search (~5°, 1 step)
     SEARCH_YAW_STEP = 0.087   # radians per yaw step (~5°)
-    MIN_VALID_RAYS = 4        # minimum rays needed to attempt a correction
-    MIN_SCORE_IMPROVE = 0.02  # fractional improvement required to accept fix
+    MIN_VALID_RAYS = 8        # minimum rays needed to attempt a correction
+    MIN_SCORE_IMPROVE = 0.05  # fractional improvement required to accept fix
     UPDATE_HZ = 2.0           # correction frequency
 
     def __init__(self):

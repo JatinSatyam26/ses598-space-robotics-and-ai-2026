@@ -50,6 +50,7 @@ cleanup() {
   pkill -9 -f "smart_flight_node" 2>/dev/null || true
   pkill -9 -f "smart_rover_node" 2>/dev/null || true
   pkill -9 -f "trn_node" 2>/dev/null || true
+  pkill -9 -f "phase12_logger" 2>/dev/null || true
   echo "  Done."
 }
 trap cleanup EXIT
@@ -140,6 +141,16 @@ GT_PID=$!
 PIDS+=($GT_PID)
 echo "  GT logger PID: ${GT_PID} — output: /tmp/phase7_groundtruth.csv"
 
+# ── 7. Phase 12 localization error logger ────────────────────────────────────
+echo "Starting Phase 12 localization logger..."
+source /opt/ros/jazzy/setup.bash 2>/dev/null || true
+[[ -f "$HOME/ros2_ws/install/setup.bash" ]] && \
+  source "$HOME/ros2_ws/install/setup.bash" || true
+python3 "${SCRIPT_DIR}/phase12_logger.py" > /tmp/phase12_logger.log 2>&1 &
+P12_PID=$!
+PIDS+=($P12_PID)
+echo "  Phase 12 logger PID: ${P12_PID} — output: /tmp/phase12_poses.csv"
+
 echo ""
 echo "=========================================="
 echo "  ALL SYSTEMS RUNNING"
@@ -147,7 +158,8 @@ echo "  Drone: TAKEOFF → SURVEY → LAND"
 echo "  Rover: WAITING → PLANNING → NAVIGATING"
 echo "  Logs: /tmp/smart_flight.log"
 echo "        /tmp/smart_rover.log"
-echo "        /tmp/bridge.log"
+echo "        /tmp/trn.log"
+echo "        /tmp/phase12_poses.csv  (Phase 12 error analysis)"
 echo "  Press Ctrl+C to stop"
 echo "=========================================="
 
