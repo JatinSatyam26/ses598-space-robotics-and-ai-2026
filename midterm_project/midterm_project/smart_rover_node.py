@@ -68,6 +68,10 @@ class SmartRoverNode(Node):
 
         # TRN feedback state
         self._trn_correction_count = 0
+        self._trn_applied_since_replan = 0.0  # metres of TRN correction since last (re)plan
+        self._replan_threshold = 0.6           # metres accumulated before triggering re-plan
+        self._replan_cooldown = 0              # control ticks until re-plan allowed (10Hz→50=5s)
+        self._replan_cooldown_ticks = 50
 
         self.timer = self.create_timer(0.1, self.control_loop)
         self.get_logger().info('SmartRoverNode initialized — waiting for occupancy grid...')
@@ -130,12 +134,14 @@ class SmartRoverNode(Node):
         alpha = 0.3
         self.pos[0] += alpha * dx
         self.pos[1] += alpha * dy
+        self._trn_applied_since_replan += alpha * mag
 
         self._trn_correction_count += 1
         if self._trn_correction_count % 10 == 1:
             self.get_logger().info(
                 f'TRN blend #{self._trn_correction_count}: '
-                f'delta=({dx:.3f},{dy:.3f})m mag={mag:.3f}m cov={cov_x:.4f}')
+                f'delta=({dx:.3f},{dy:.3f})m mag={mag:.3f}m '
+                f'accumulated={self._trn_applied_since_replan:.3f}m cov={cov_x:.4f}')
 
     def map_cb(self, msg):
         if self.occupancy_grid is not None:
@@ -260,6 +266,8 @@ class SmartRoverNode(Node):
                 self.state = 'WAITING'
                 return
             self.path_idx = 0
+            self._trn_applied_since_replan = 0.0
+            self._replan_cooldown = 0
             self.get_logger().info(f'Path planned: {len(self.path)} waypoints')
             for i, (wx, wy) in enumerate(self.path):
                 self.get_logger().info(f'  WP {i:2d}: ({wx:.1f}, {wy:.1f})')
@@ -295,6 +303,39 @@ class SmartRoverNode(Node):
                         f'A* did not route to the dome. NOT declaring arrival.')
                     self.cmd_pub.publish(Twist())
                     return
+
+            # ── Cooldown decrement (runs every control tick) ──────────────────
+            if self._replan_cooldown > 0:
+                self._replan_cooldown -= 1
+
+            # ── TRN-triggered re-plan ─────────────────────────────────────────
+            # Fire when accumulated TRN correction exceeds threshold AND cooldown
+            # has expired.  Guards: skip if ≤2 WPs remain (near goal); keep old
+            # path if A* fails so the rover never stops cold mid-mission.
+            if (self._trn_applied_since_replan >= self._replan_threshold
+                    and self._replan_cooldown == 0):
+                remaining = len(self.path) - self.path_idx
+                accumulated = self._trn_applied_since_replan
+                self._trn_applied_since_replan = 0.0      # reset before A* call
+                self._replan_cooldown = self._replan_cooldown_ticks
+                if remaining > 2:
+                    self.get_logger().info(
+                        f'TRN re-plan: {accumulated:.3f}m accumulated — '
+                        f'replanning from ({self.pos[0]:.2f},{self.pos[1]:.2f}), '
+                        f'{remaining} WPs left')
+                    new_path = self._astar(self.pos[:2], self.goal)
+                    if new_path:
+                        self.path = new_path
+                        self.path_idx = 0
+                        self.get_logger().info(
+                            f'Re-plan succeeded: {len(new_path)} new waypoints')
+                    else:
+                        self.get_logger().warn(
+                            'Re-plan A* found no path — keeping existing path')
+                else:
+                    self.get_logger().info(
+                        f'TRN re-plan skipped — only {remaining} WPs remain, near goal')
+            # ──────────────────────────────────────────────────────────────────
 
             # ── Reactive LiDAR obstacle avoidance ──────────────────────────────
             if self.lidar_min_front < self.obstacle_stop_dist:
