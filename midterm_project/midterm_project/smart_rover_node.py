@@ -9,7 +9,7 @@ State machine: WAITING → PLANNING → NAVIGATING → ARRIVED
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy, HistoryPolicy
-from geometry_msgs.msg import Twist
+from geometry_msgs.msg import PoseWithCovarianceStamped, Twist
 from nav_msgs.msg import Odometry, OccupancyGrid
 from sensor_msgs.msg import LaserScan
 import numpy as np
@@ -38,6 +38,8 @@ class SmartRoverNode(Node):
             depth=1
         )
         self.create_subscription(OccupancyGrid, '/drone/occupancy_grid', self.map_cb, map_qos)
+        self.create_subscription(
+            PoseWithCovarianceStamped, '/rover/trn_pose', self.trn_cb, 10)
 
         self.pos = np.array([0.0, 1.5, 0.0])
         self.yaw = 0.0
@@ -63,6 +65,9 @@ class SmartRoverNode(Node):
         # Safety thresholds
         self.obstacle_stop_dist = 0.55    # stop and avoid if closer than this
         self.obstacle_caution_dist = 0.9  # slow down if closer than this
+
+        # TRN feedback state
+        self._trn_correction_count = 0
 
         self.timer = self.create_timer(0.1, self.control_loop)
         self.get_logger().info('SmartRoverNode initialized — waiting for occupancy grid...')
@@ -100,6 +105,37 @@ class SmartRoverNode(Node):
         right_min = float(np.nanmin(ranges[220:320])) if n >= 320 else float('inf')
         # Turn toward the side with more clearance
         self.lidar_avoid_dir = 1.0 if left_min > right_min else -1.0
+
+    def trn_cb(self, msg: PoseWithCovarianceStamped):
+        # Only blend TRN correction while actively navigating
+        if self.state != 'NAVIGATING':
+            return
+
+        # Reject if TRN covariance is still high (σ > ~0.7m → cov[0] > 0.5)
+        cov_x = msg.pose.covariance[0]
+        if cov_x > 0.5:
+            return
+
+        trn_x = msg.pose.pose.position.x
+        trn_y = msg.pose.pose.position.y
+        dx = trn_x - self.pos[0]
+        dy = trn_y - self.pos[1]
+        mag = math.sqrt(dx * dx + dy * dy)
+
+        # Reject implausibly large corrections (TRN divergence guard)
+        if mag > 0.8:
+            return
+
+        # Soft blend: apply 30% of correction per TRN tick (2 Hz) to avoid jumps
+        alpha = 0.3
+        self.pos[0] += alpha * dx
+        self.pos[1] += alpha * dy
+
+        self._trn_correction_count += 1
+        if self._trn_correction_count % 10 == 1:
+            self.get_logger().info(
+                f'TRN blend #{self._trn_correction_count}: '
+                f'delta=({dx:.3f},{dy:.3f})m mag={mag:.3f}m cov={cov_x:.4f}')
 
     def map_cb(self, msg):
         if self.occupancy_grid is not None:
