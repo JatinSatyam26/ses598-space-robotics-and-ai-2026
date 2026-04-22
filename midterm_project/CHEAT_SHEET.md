@@ -1,5 +1,5 @@
 # SES 598 — Technical Invariants Cheat Sheet
-**Last updated: April 20, 2026. Phases 8–10 complete. TRN scan-to-map matcher verified live. Full cooperative pipeline working end-to-end on jezero_c.sdf.**
+**Last updated: April 22, 2026. Phases 8–10 and 12 complete. Baseline re-verified Apr 22 (88 occupied, 0 obstacle events, ARRIVED 0.73m, ~145s). shadows=false in jezero_c.sdf recovers ~5% RTF. Phase 3/4 rock attempts aborted — RTF drops to 60-65% with any static collision objects added. Rock strategy needs rethink before retry.**
 
 ---
 
@@ -96,9 +96,11 @@
 - **(Phase 9 — Apr 20)** TRN scan-to-map matcher node (`trn_node.py`). Builds Gaussian-blurred likelihood field from occupancy grid (pure numpy, no scipy). Vectorized (K×M) candidate scoring at 2 Hz, K=294 candidates (±0.75m XY, ±15° yaw). Dead-reckons from odom deltas between updates. Publishes PoseWithCovarianceStamped on `/rover/trn_pose`. Verified live: fix #1 improve=43.9%, fix #11 improve=88.6%, covariance converged 1.6→0.05 by fix #21.
 - **(Phase 9b — Apr 20)** TRN feedback loop in `smart_rover_node`. Subscribes to `/rover/trn_pose`; blends correction at α=0.3 when cov<0.5 and magnitude<0.8m. Guards against divergence. Logs every 10th blend.
 - **(Phase 10 — Apr 20)** TRN-triggered A* re-planning. Accumulates applied TRN correction; when >0.6m AND cooldown=0 AND >2 WPs remain, re-runs A* from corrected position. 5s cooldown (50 ticks at 10 Hz). Keeps old path if A* fails. Verified live: no re-plan fired (small corrections, original path valid — correct healthy outcome).
+- **(Phase 12 — Apr 20)** Localization error analysis. `scripts/phase12_logger.py` + `scripts/phase12_analysis.py`. Odom mean error 0.965m, TRN mean 2.699m (bias-corrected). TRN benefit confirmed at t=97–108s (+15–24%). trn_node.py params tightened: SEARCH_YAW 0.087 rad, MIN_VALID_RAYS 8, MIN_SCORE_IMPROVE 0.05.
+- **(Baseline re-verified — Apr 22)** Clean run after Phase 3/4 rock attempts abandoned. shadows=false in jezero_c.sdf. Result: 88 occupied, 761 free, 0 obstacle events, ARRIVED at 0.73m from dome, 19-WP path, ~145s wall-clock. Gazebo cache cleared. This is the confirmed healthy baseline.
 
 ### In progress
-- Nothing. Phases 8–10 verified live. Full cooperative pipeline validated on jezero_c.sdf.
+- Nothing. Baseline re-verified Apr 22 with shadows=false. Phase 3/4 rock enrichment deferred — needs RTF strategy.
 
 ### Broken (diagnosed, not yet fixed)
 - Status printer in launch script shows `WP 0/8` always. Cosmetic, dishonest, known.
@@ -113,8 +115,7 @@
 - **Terrain visually darker than expected in Gazebo GUI.** Ortho PNG is confirmed ochre stand-alone, but terrain in-scene reads closer to dark chocolate. Gazebo tone-mapping / ogre2 auto-exposure interacting with the bright butterscotch sky background. Not blocking. Address in Phase 2.5 polish pass if time (reserved for last).
 
 ### Not yet built
-- Mastcam-Z hero rock meshes (Phase 3)
-- Poly Haven scatter with Golombek-Rapp distribution (Phase 4)
+- Rock feature enrichment (Phase 3/4) — blocked by RTF; see roadmap for options
 - Atmospheric fog for horizon fade (Phase 2.5 polish, optional, last)
 
 ---
@@ -356,25 +357,25 @@ jezero_c.sdf [committed, 3144 bytes]
 - [x] **Phase 9:** TRN scan-to-map matcher (Apr 20). `trn_node.py` — likelihood field + vectorized K×M scoring at 2 Hz. Verified: 41+ fixes, covariance 1.6→0.05 by fix #21. Publishes `/rover/trn_pose`.
 - [x] **Phase 9b:** TRN feedback loop in rover (Apr 20). Soft-blend α=0.3, cov guard, magnitude guard.
 - [x] **Phase 10:** TRN-triggered A* re-planning (Apr 20). 0.6m threshold, 5s cooldown, near-goal skip, A* failure fallback. Verified live: no re-plan fired (small corrections = original path valid — healthy).
-- [ ] **Phase 3:** Mastcam-Z hero meshes (Sketchfab CC-Attribution), chop in Blender
-- [ ] **Phase 4:** Poly Haven scatter meshes, Golombek-Rapp distribution
-- [ ] **Phase 12:** Integration run + localization error curve vs ground truth CSV
+- [ ] **Phase 3:** Rock feature enrichment — ATTEMPTED Apr 22, ABORTED. Box rocks at rig y=+2 caused rover collision; RTF dropped to 65% with any static collision objects on HiRISE mesh. Root cause: static bodies add broad-phase collision pairs against 8192-triangle terrain. Options for retry: (a) use ≤2 rocks at rig y=−2 only, (b) accept 65% RTF, (c) skip entirely.
+- [ ] **Phase 4:** Procedural scatter — ATTEMPTED Apr 22, ABORTED. 8 OBJ-visual + box-collision rocks at rig y=−2: RTF ~60%, A* rerouting caused 212 dome-collision events. `scripts/generate_rocks_phase4.py` + `worlds/jezero_c/meshes_scatter/*.obj` on disk (untracked). Same RTF root cause as Phase 3.
+- [x] **Phase 12:** Localization error curve (Apr 20). `scripts/phase12_logger.py` + `scripts/phase12_analysis.py`. Odom 0.965m mean error, TRN 2.699m bias-corrected. TRN benefit t=97–108s (+15–24%). trn_node params tightened.
 - [ ] **Phase 2.5 (optional polish, LAST):** Atmospheric fog, dark-terrain debug
 
-Note: Phases 3 and 4 moved AFTER Phase 6 in the roadmap because Phase 6 will tell us whether bare terrain has enough features for scan-matching — if yes, cosmetic rocks are decorative; if no, rocks become a minimum-viable requirement for Phase 9.
+Note: Phase 3/4 rock enrichment blocked by RTF degradation on HiRISE mesh. TRN works with 86–88 occupied cells from bare terrain (covariance floors at 0.05). Rocks are a nice-to-have, not a must-have. Proceed to report + demo recording if deadline pressure rises.
 
 ---
 
 ## Next-action checklist — START OF NEXT SESSION
 
-State at start of next session: Phases 8–10 complete and verified (Apr 20). Full cooperative pipeline running on jezero_c.sdf. 20 days to May 10 deadline (May 4 other assignment pending).
+State at start of next session: Phases 8–10 and 12 complete (Apr 20–22). Baseline re-verified Apr 22: 88 occupied, 0 obstacle events, ARRIVED 0.73m, ~145s. shadows=false committed. 18 days to May 10 (May 4 other assignment pending).
 
 **Suggested next moves, in order of value:**
 
-1. **Phase 12: Localization error curve.** Compare `/rover/trn_pose` vs `/tmp/phase7_groundtruth.csv` across a full run. Plot odom drift vs TRN-corrected error vs ground truth. This is the quantitative validation required for the report.
-2. **Phase 3: Mastcam-Z rocks.** Add 3–5 hero rock meshes (Sketchfab CC-Attribution) to jezero_c.sdf as static models. Increases visual realism and gives TRN more features to match against.
-3. **Phase 4: Poly Haven scatter.** Rock/dust scatter with Golombek-Rapp size distribution. Optional — Phase 3 rocks alone may suffice.
-4. **Phase 2.5 polish (last).** Fix dark terrain tone-mapping, atmospheric fog. Purely cosmetic.
+1. **Record demo video.** Full pipeline working. Run `WORLD_SDF=worlds/jezero_c.sdf bash scripts/run_live_demo.sh` with screen recording. This is the primary deliverable.
+2. **Write/complete report.** Phase 12 quantitative results (odom vs TRN error curve) are the key technical contribution. `scripts/phase12_analysis.py` already produces the plot.
+3. **Phase 3/4 retry (optional).** Only if demo video looks thin on visual richness. Try ≤2 rocks at rig y=−2, accept RTF ~80%, verify no dome-circling before committing.
+4. **Phase 2.5 polish (last, if time).** Fix dark terrain tone-mapping, atmospheric fog.
 
 ---
 
@@ -402,6 +403,9 @@ State at start of next session: Phases 8–10 complete and verified (Apr 20). Fu
 - **Apr 20 Phase 8 sleep loop → TRANSIENT_LOCAL:** Original map publish used `sleep(2)` + republish loop. Replaced with TRANSIENT_LOCAL QoS so subscriber always receives the map regardless of timing. Both publisher and subscriber must match.
 - **Apr 20 Phase 9 TRN covariance:** `trn_cov` stored as scalar (not matrix diagonal). Published as `cov[0] = trn_cov²`. Rover guard checks `cov[0] < 0.5` → σ < ~0.7m. Confirmed: covariance floors at 0.0025 (σ=0.05m) after ~21 fixes.
 - **Apr 20 Phase 10 re-plan not firing (healthy):** In validated run, accumulated TRN correction never reached 0.6m threshold. This is correct — TRN corrections were small (drift well-controlled by 6WD + μ=3.0), so original A* path remained valid. Re-plan guard working correctly.
+- **Apr 22 Phase 3 RTF crash:** 6 static box rocks on HiRISE mesh dropped RTF from ~100% to 65%. Root cause: static bodies still participate in broad-phase collision detection; adding shapes to an 8192-triangle mesh terrain multiplies collision-pair work. Reverted.
+- **Apr 22 Phase 3 rover collision:** Rocks at rig y=+2 (world y=−18) placed 0.5m from rover start (y=+1.5). Rock edge at y=1.725m, rover body ~0.5m wide. Effective zero clearance despite A* avoiding grid cells. Rover crashed physically.
+- **Apr 22 Phase 4 RTF + dome-circling:** 8 OBJ-visual + box-collision rocks at rig y=−2 (safe from rover). RTF ~60% (shadows=false helped but mesh rendering adds GPU load). A* path rerouted around rocks, altering final dome approach angle → 212 dome-collision events (rover circling dome). Mission technically completed (ARRIVED 0.73m) but visually wrong. Root RTF cause same as Phase 3. Reverted. generate_rocks_phase4.py + meshes_scatter/*.obj kept on disk as reference (untracked).
 
 ---
 
