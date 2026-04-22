@@ -2,10 +2,10 @@
 <sdf version="1.10">
   <world name="jezero_c">
 
-    <!-- Physics: 2ms step — halves motor/controller CPU vs 1ms.
-         500 Hz is 2x faster than PX4 SITL default (250 Hz); flight stable. -->
-    <physics name="2ms" type="ignored">
-      <max_step_size>0.002</max_step_size>
+    <!-- Physics: 4ms step — matches PX4 SITL default (250 Hz); halves physics
+         CPU vs 2ms while keeping MulticopterVelocityControl stable. -->
+    <physics name="4ms" type="ignored">
+      <max_step_size>0.004</max_step_size>
       <real_time_factor>1.0</real_time_factor>
     </physics>
 

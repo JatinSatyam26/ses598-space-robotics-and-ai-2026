@@ -12,7 +12,7 @@ from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy, HistoryPolicy
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry, OccupancyGrid
-from sensor_msgs.msg import LaserScan, Image
+from sensor_msgs.msg import LaserScan
 from std_msgs.msg import Header
 import numpy as np
 import math
@@ -41,7 +41,6 @@ class SmartFlightNode(Node):
 
         self.create_subscription(Odometry, '/drone/odom', self.odom_cb, gz_qos)
         self.create_subscription(LaserScan, '/drone/rangefinder', self.range_cb, gz_qos)
-        self.create_subscription(Image, '/drone/front_depth', self.depth_cb, gz_qos)
 
         # State
         self.state = 'TAKEOFF'
@@ -111,12 +110,6 @@ class SmartFlightNode(Node):
             self.rangefinder_alt = msg.ranges[0]
             self.has_range = True
 
-    def depth_cb(self, msg):
-        # Depth camera data received but not used for grid updates — forward-facing
-        # camera at 3m AGL produces false positives from sloped terrain since the
-        # depth-to-height geometry requires the camera tilt angle which isn't modelled
-        # here. Rangefinder (downward) is the primary obstacle sensor.
-        pass
 
     def _update_cell(self, gx, gy, delta):
         if 0 <= gx < self.grid_width and 0 <= gy < self.grid_height:
