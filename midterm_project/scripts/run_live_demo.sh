@@ -109,6 +109,7 @@ ros2 run ros_gz_bridge parameter_bridge \
   "/flying_drone/gazebo/command/twist@geometry_msgs/msg/Twist]gz.msgs.Twist" \
   "/model/drone/odometry@nav_msgs/msg/Odometry[gz.msgs.Odometry" \
   "/rangefinder@sensor_msgs/msg/LaserScan[gz.msgs.LaserScan" \
+  "/depth_camera@sensor_msgs/msg/Image[gz.msgs.Image" \
   "/cmd_vel@geometry_msgs/msg/Twist]gz.msgs.Twist" \
   "/rover_odom@nav_msgs/msg/Odometry[gz.msgs.Odometry" \
   "/rover_lidar@sensor_msgs/msg/LaserScan[gz.msgs.LaserScan" \
@@ -116,6 +117,7 @@ ros2 run ros_gz_bridge parameter_bridge \
   -r /flying_drone/gazebo/command/twist:=/drone/cmd_vel \
   -r /model/drone/odometry:=/drone/odom \
   -r /rangefinder:=/drone/rangefinder \
+  -r /depth_camera:=/drone/front_depth \
   -r /cmd_vel:=/rover/cmd_vel \
   -r /rover_odom:=/rover/odom \
   -r /rover_lidar:=/rover/lidar \

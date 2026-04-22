@@ -24,6 +24,68 @@
       <uri>model://x500_base</uri>
     </include>
 
+    <!-- ── Downward-facing mono camera ─────────────────────────────────── -->
+    <link name="down_cam_link">
+      <pose>0 0 -0.05 0 1.5708 0</pose>
+      <inertial>
+        <mass>0.001</mass>
+        <inertia>
+          <ixx>1e-7</ixx><ixy>0</ixy><ixz>0</ixz>
+          <iyy>1e-7</iyy><iyz>0</iyz>
+          <izz>1e-7</izz>
+        </inertia>
+      </inertial>
+      <sensor name="mono_camera" type="camera">
+        <always_on>1</always_on>
+        <update_rate>1</update_rate>
+        <camera>
+          <horizontal_fov>1.047</horizontal_fov>
+          <image>
+            <width>800</width>
+            <height>600</height>
+            <format>RGB_INT8</format>
+          </image>
+          <clip><near>0.1</near><far>100</far></clip>
+        </camera>
+        <topic>mono_camera</topic>
+      </sensor>
+    </link>
+    <joint name="down_cam_joint" type="fixed">
+      <parent>base_link</parent>
+      <child>down_cam_link</child>
+    </joint>
+
+    <!-- ── Front-facing RGB camera ──────────────────────────────────────── -->
+    <link name="front_rgb_link">
+      <pose>0.1 0 0 0 0.3 0</pose>
+      <inertial>
+        <mass>0.001</mass>
+        <inertia>
+          <ixx>1e-7</ixx><ixy>0</ixy><ixz>0</ixz>
+          <iyy>1e-7</iyy><iyz>0</iyz>
+          <izz>1e-7</izz>
+        </inertia>
+      </inertial>
+      <sensor name="rgb_camera" type="camera">
+        <always_on>1</always_on>
+        <update_rate>1</update_rate>
+        <camera>
+          <horizontal_fov>1.047</horizontal_fov>
+          <image>
+            <width>800</width>
+            <height>600</height>
+            <format>RGB_INT8</format>
+          </image>
+          <clip><near>0.1</near><far>100</far></clip>
+        </camera>
+        <topic>rgb_camera</topic>
+      </sensor>
+    </link>
+    <joint name="front_rgb_joint" type="fixed">
+      <parent>base_link</parent>
+      <child>front_rgb_link</child>
+    </joint>
+
     <!-- ── Downward-pointing rangefinder (single-ray LiDAR for alt hold) ── -->
     <link name="rangefinder_link">
       <pose>0 0 -0.05 0 1.5708 0</pose>
@@ -67,6 +129,36 @@
     <joint name="rangefinder_joint" type="fixed">
       <parent>base_link</parent>
       <child>rangefinder_link</child>
+    </joint>
+
+    <!-- ── Front-facing depth camera ────────────────────────────────────── -->
+    <link name="front_depth_link">
+      <pose>0.1 0 0.02 0 0.3 0</pose>
+      <inertial>
+        <mass>0.001</mass>
+        <inertia>
+          <ixx>1e-7</ixx><ixy>0</ixy><ixz>0</ixz>
+          <iyy>1e-7</iyy><iyz>0</iyz>
+          <izz>1e-7</izz>
+        </inertia>
+      </inertial>
+      <sensor name="depth_camera" type="depth_camera">
+        <always_on>1</always_on>
+        <update_rate>1</update_rate>
+        <camera>
+          <horizontal_fov>1.047</horizontal_fov>
+          <image>
+            <width>640</width>
+            <height>480</height>
+          </image>
+          <clip><near>0.1</near><far>50</far></clip>
+        </camera>
+        <topic>depth_camera</topic>
+      </sensor>
+    </link>
+    <joint name="front_depth_joint" type="fixed">
+      <parent>base_link</parent>
+      <child>front_depth_link</child>
     </joint>
 
     <!-- ── MulticopterMotorModel for each rotor ──────────────────────────
