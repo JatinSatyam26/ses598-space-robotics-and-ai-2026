@@ -33,6 +33,19 @@ WORLD_SDF="${WORLD_SDF:-${PROJECT_DIR}/worlds/mars_mission.sdf}"
 [[ "$WORLD_SDF" != /* ]] && WORLD_SDF="${PROJECT_DIR}/${WORLD_SDF}"
 [[ ! -f "$WORLD_SDF" ]] && { echo "ERROR: $WORLD_SDF not found"; exit 1; }
 
+# ── Pre-flight: kill any stray simulation from a previous run ─────────────────
+echo "Checking for stray processes from previous runs..."
+pkill -TERM -f "gz sim" 2>/dev/null && sleep 2 || true
+pkill -9   -f "gz sim" 2>/dev/null || true
+pkill -9   -f "parameter_bridge" 2>/dev/null || true
+pkill -9   -f "smart_flight_node" 2>/dev/null || true
+pkill -9   -f "smart_rover_node" 2>/dev/null || true
+pkill -9   -f "trn_node" 2>/dev/null || true
+pkill -9   -f "phase12_logger" 2>/dev/null || true
+pkill -9   -f "groundtruth_logger" 2>/dev/null || true
+sleep 1
+echo "  Pre-flight cleanup done."
+
 # ── Process tracking ──────────────────────────────────────────────────────────
 PIDS=()
 
@@ -51,6 +64,7 @@ cleanup() {
   pkill -9 -f "smart_rover_node" 2>/dev/null || true
   pkill -9 -f "trn_node" 2>/dev/null || true
   pkill -9 -f "phase12_logger" 2>/dev/null || true
+  pkill -9 -f "groundtruth_logger" 2>/dev/null || true
   echo "  Done."
 }
 trap cleanup EXIT
