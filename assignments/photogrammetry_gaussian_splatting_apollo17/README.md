@@ -94,14 +94,15 @@ UV atlas generation via xatlas exceeded a 45-minute per-mesh budget on the 2.1M-
 
 The lower coverage on the N=24 mesh reflects its higher vertex density and proportionally larger occluded interior surface area.
 
-![Textured mesh qualitative comparison](comparison/textured_qualitative_grid.png)
-*Figure 1: Per-vertex-colored mesh rendered from four viewpoints. Left pair: N=14 reconstruction. Right pair: N=24 reconstruction.*
+Each viewpoint below shows the N=14 textured mesh on the left, the original Apollo 17 source photograph in the center, and the ICP-aligned N=24 textured mesh on the right. The same camera intrinsics and viewpoint were used for both renders. View 1 and View 2 use mag137 color photographs as source. View 3 and View 4 use mag138 grayscale photographs and show the reseau calibration crosses characteristic of that magazine.
 
-![Side-by-side mag137 boulder](comparison/textured_sidebyside_view1.png)
-*Figure 2: mag137 boulder face. Real photograph (left) vs per-vertex textured mesh render (right).*
+![View 1: N=14 mesh, source photograph AS17-137-20904HR, N=24 mesh](comparison/textured_sidebyside_view1.png)
 
-![Side-by-side mag138 boulder](comparison/textured_sidebyside_view3.png)
-*Figure 3: mag138 boulder with reseau cross artifacts visible in the real photograph (left); textured mesh render (right).*
+![View 2: N=14 mesh, source photograph AS17-137-20907HR, N=24 mesh](comparison/textured_sidebyside_view2.png)
+
+![View 3: N=14 mesh, source photograph AS17-138-21030HR, N=24 mesh](comparison/textured_sidebyside_view3.png)
+
+![View 4: N=14 mesh, source photograph AS17-138-21033HR, N=24 mesh](comparison/textured_sidebyside_view4.png)
 
 ---
 
