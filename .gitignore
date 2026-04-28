@@ -1,4 +1,16 @@
 *.zip
 *.tar.xz
-*.zip
-*.tar.xz
+
+# Assignment photogrammetry artifacts
+assignments/**/*.ply
+assignments/**/colmap_n*/database.db
+assignments/**/__pycache__/
+assignments/**/*.pyc
+assignments/**/nerfstudio_envs/
+assignments/**/*.aux
+assignments/**/*.log
+assignments/**/*.out
+assignments/**/*.toc
+assignments/**/*.fls
+assignments/**/*.fdb_latexmk
+assignments/**/*.synctex.gz

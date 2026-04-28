@@ -1,0 +1,5 @@
+# SES 598 Final Project: Apollo 17 Boulder Photogrammetry
+
+This repository contains the full pipeline for the SES 598 final project (due May 4, 2026), which reconstructs the Apollo 17 lunar boulder scene from 15 archival Hasselblad photographs (N=15 dataset; 7 color frames from magazine 137, 8 grayscale frames from magazine 138) using two parallel approaches: (1) a photogrammetric pipeline built with COLMAP sparse reconstruction, a custom PyTorch plane-sweep multi-view stereo, Open3D Poisson surface reconstruction, and per-vertex texturing, and (2) a 3D Gaussian Splatting model (Nerfstudio splatfacto) trained on the registered N=14 frames with subsequent novel-view synthesis for augmented reconstruction. The headline results are: splatfacto mean PSNR of 33.93 dB (SSIM 0.943) over all 14 training views; F-score@5% of 0.934 between the N=14 and N=24 meshes confirming broad geometric consistency; and 0 of 10 rendered novel views registering in COLMAP, establishing that SIFT-based feature matching cannot use 3DGS-rendered frames as photogrammetric observations on this dataset.
+
+**Grading target: `report/SES598_Final_Report.pdf`**

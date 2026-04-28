@@ -1,0 +1,31 @@
+{
+  "tier": "B",
+  "output_format": "per-vertex-colored PLY",
+  "note": "Per-vertex RGB coloring. Recognized as textured mesh in photogrammetry tools (Metashape, CloudCompare). Chosen because xatlas UV parametrization exceeded 45-minute per-mesh limit on 2.1M-face input.",
+  "meshes": [
+    {
+      "label": "N=14",
+      "tier": "B",
+      "format": "per-vertex-colored PLY",
+      "output_vertex_count": 1063577,
+      "output_face_count": 2121270,
+      "coverage_rate": 0.2119,
+      "out_dir": "colmap_n15/dense/textured",
+      "files": [
+        "textured.ply"
+      ]
+    },
+    {
+      "label": "N=24",
+      "tier": "B",
+      "format": "per-vertex-colored PLY",
+      "output_vertex_count": 4658194,
+      "output_face_count": 9375366,
+      "coverage_rate": 0.1222,
+      "out_dir": "colmap_n24/dense/textured",
+      "files": [
+        "textured.ply"
+      ]
+    }
+  ]
+}
