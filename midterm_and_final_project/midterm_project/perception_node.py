@@ -45,7 +45,7 @@ class PerceptionNode(Node):
         # Default model path if not set
         if not self.model_path:
             self.model_path = os.path.expanduser(
-                '~/ses598-space-robotics-and-ai-2026/midterm_project/deps/'
+                '~/ses598-space-robotics-and-ai-2026/midterm_and_final_project/deps/'
                 'mast3r/checkpoints/'
                 'MASt3R_ViTLarge_BaseDecoder_512_catmlpdpt_metric.pth')
 
@@ -177,7 +177,7 @@ class PerceptionNode(Node):
         try:
             self.get_logger().info('Loading MASt3R model...')
             deps_path = os.path.expanduser(
-                '~/ses598-space-robotics-and-ai-2026/midterm_project/deps/mast3r')
+                '~/ses598-space-robotics-and-ai-2026/midterm_and_final_project/deps/mast3r')
             sys.path.insert(0, deps_path)
             sys.path.insert(0, os.path.join(deps_path, 'dust3r'))
 

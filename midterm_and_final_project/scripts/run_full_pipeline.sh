@@ -24,7 +24,7 @@
 set -euo pipefail
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
-PROJECT_DIR="$HOME/ses598-space-robotics-and-ai-2026/midterm_project"
+PROJECT_DIR="$HOME/ses598-space-robotics-and-ai-2026/midterm_and_final_project"
 SCRIPTS_DIR="$PROJECT_DIR/scripts"
 LOG_DIR="$HOME/midterm_logs"
 DATA_DIR="$HOME/midterm_flight_data"

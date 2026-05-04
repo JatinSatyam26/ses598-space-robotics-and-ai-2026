@@ -5,8 +5,8 @@ echo "=== Terminal 4: Starting image saver ==="
 source /opt/ros/jazzy/setup.bash
 source ~/ros2_ws/install/setup.bash
 
-mkdir -p ~/ses598-space-robotics-and-ai-2026/midterm_project/data/images
+mkdir -p ~/ses598-space-robotics-and-ai-2026/midterm_and_final_project/data/images
 
 ros2 run midterm_project image_saver \
   --ros-args \
-  --params-file ~/ses598-space-robotics-and-ai-2026/midterm_project/config/mission_config.yaml
+  --params-file ~/ses598-space-robotics-and-ai-2026/midterm_and_final_project/config/mission_config.yaml

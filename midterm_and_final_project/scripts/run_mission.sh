@@ -176,7 +176,7 @@ setsid bash -c '
     source '"$ROS2_WS"'/install/setup.bash
     ros2 run midterm_project control_node \
       --ros-args \
-      --params-file ~/ses598-space-robotics-and-ai-2026/midterm_project/config/mission_config.yaml 2>&1
+      --params-file ~/ses598-space-robotics-and-ai-2026/midterm_and_final_project/config/mission_config.yaml 2>&1
 ' >> "$CTRL_LOG" 2>&1 &
 CTRL_PID=$!
 echo "$CTRL_PID" > /tmp/midterm_control.pid
@@ -192,7 +192,7 @@ setsid bash -c '
     source '"$ROS2_WS"'/install/setup.bash
     ros2 run midterm_project image_saver \
       --ros-args \
-      --params-file ~/ses598-space-robotics-and-ai-2026/midterm_project/config/mission_config.yaml \
+      --params-file ~/ses598-space-robotics-and-ai-2026/midterm_and_final_project/config/mission_config.yaml \
       -p output_dir:='"$FLIGHT_DATA"' 2>&1
 ' >> "$SAVER_LOG" 2>&1 &
 SAVER_PID=$!

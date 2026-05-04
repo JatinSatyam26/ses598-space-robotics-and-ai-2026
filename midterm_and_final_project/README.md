@@ -132,7 +132,7 @@ source install/setup.bash
 ## Quick Start — Full Pipeline
 
 ```bash
-cd ~/ses598-space-robotics-and-ai-2026/midterm_project/scripts
+cd ~/ses598-space-robotics-and-ai-2026/midterm_and_final_project/scripts
 chmod +x run_full_pipeline.sh
 ./run_full_pipeline.sh
 ```

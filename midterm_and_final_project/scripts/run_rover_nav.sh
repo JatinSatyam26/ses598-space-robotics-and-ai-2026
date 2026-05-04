@@ -29,7 +29,7 @@ COSTMAP_YAML="${COSTMAP_YAML:-$HOME/midterm_reconstruction/costmap.yaml}"
 if [ ! -f "$COSTMAP_YAML" ]; then
     echo "WARNING: costmap.yaml not found at $COSTMAP_YAML"
     echo "  Generate it first:"
-    echo "  python3 ~/ses598-space-robotics-and-ai-2026/midterm_project/scripts/generate_costmap.py \\"
+    echo "  python3 ~/ses598-space-robotics-and-ai-2026/midterm_and_final_project/scripts/generate_costmap.py \\"
     echo "      ~/midterm_3dgs_export/point_cloud.ply"
     echo ""
     echo "  Proceeding without a map — Nav2 will use an empty global costmap."

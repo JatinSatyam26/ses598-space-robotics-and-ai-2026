@@ -30,4 +30,4 @@ sleep 5
 echo "=== Starting control node ==="
 ros2 run midterm_project control_node \
   --ros-args \
-  --params-file ~/ses598-space-robotics-and-ai-2026/midterm_project/config/mission_config.yaml
+  --params-file ~/ses598-space-robotics-and-ai-2026/midterm_and_final_project/config/mission_config.yaml
