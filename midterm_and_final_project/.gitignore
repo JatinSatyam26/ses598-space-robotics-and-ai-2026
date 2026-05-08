@@ -27,3 +27,7 @@ worlds/*.log
 
 # GDAL raster metadata sidecars (regenerable)
 *.aux.xml
+CHEAT_SHEET*.md
+DEMO_CHECKLIST.md
+PHASE*.md
+SES598_Session_*.md
