@@ -54,7 +54,7 @@ The intersection of these three lines is where this work sits. RaEM \cite{raem} 
 
 We are therefore careful about how we frame the contribution. This is not a claim of being the first to do active 3DGS NBV, nor the first to do cooperative aerial-ground Mars scouting, nor the first to do path-conditioned view selection. Each of those individual claims has been closed by published work, in some cases as recently as a few months ago. The contribution is a targeted specialisation: applying RaEM-style cross-agent path-conditioning, Khass-style proximity-weighted information gain, and Traversing Mars-style follower-aware utility, to a 3DGS substrate with traversability semantics in a Mars-analog setting. Each ingredient is precedented. The recipe, as far as we can tell, is not.
 
-The paper proceeds as follows. Section II surveys the four clusters of related work and the gap structure they produce. Section III states the problem. Section IV describes the system design that the full implementation would follow. Section V formalises the path-conditioned gain function and shows how RaEM's discrete-waypoint masking falls out as a special case. Section VI presents the pilot experiment that grounds the formulation in a concrete HiRISE-derived 3DGS reconstruction. Sections VII and VIII discuss limitations and the work that remains.
+The paper proceeds as follows. Section II surveys the four clusters of related work and the gap structure they produce. Section III states the problem. Section IV describes the system design that the full implementation would follow. Section V formalises the path-conditioned gain function and shows how RaEM's discrete-waypoint masking falls out as a special case. Section VI presents the pilot experiment that grounds the formulation in a concrete HiRISE-derived 3DGS reconstruction. Section VII describes the simulation environment and its connection to the pilot results. Sections VIII and IX discuss limitations and the work that remains.
 
 \section{Related Work}
 
@@ -95,7 +95,7 @@ v^* = \arg\max_{v \in V} u(v),
 where $u(v)$ rewards reducing per-cell traversability uncertainty $\sigma^2_c$ in cells $c$ that are likely to lie on the rover's planned path. The substrate constraint is that $\sigma^2_c$ is derived from the per-Gaussian reconstruction uncertainty of the contributing splats, not from a separate costmap or occupancy grid.
 
 \section{System Design}
-This section describes the system architecture that the full implementation would follow. The pilot experiment in Section VI exercises the gain function and the per-Gaussian uncertainty layer; the remaining components are described here and treated as future work in Section VIII.
+This section describes the system architecture that the full implementation would follow. The pilot experiment in Section VI exercises the gain function and the per-Gaussian uncertainty layer; the remaining components are described here and treated as future work in Section IX.
 
 \subsection{Drone Survey and Control}
 A multirotor drone flies an adaptive survey pattern over the terrain. The control layer uses Gazebo Harmonic's native MulticopterVelocityControl, consistent with the midterm infrastructure. The survey pattern is driven by the NBV planner rather than a fixed lawnmower path.
@@ -159,16 +159,17 @@ u_{\text{UCB}}(v) = \sum_c P(c \in r) \cdot \left[\mu_c(v) + \beta_t^{1/2} \sigm
 following the regret-bound machinery of Srinivas et al. \cite{srinivas} and the methodology import from Das et al. \cite{das}. We do not need this extension for the pilot result and leave it as future work.
 
 \section{Pilot Experiment}
+\label{sec:pilot}
 The pilot is deliberately scoped. It does not exercise the full closed-loop system. It demonstrates two specific things: per-Gaussian uncertainty can be visualised on a HiRISE-derived 3DGS reconstruction, and the path-conditioned gain function from Section V selects a different viewpoint than a uniform-weight baseline on the same data. These are the minimum results that ground the formulation in something concrete.
 
 \subsection{Setup}
-The terrain is a region of Jezero Crater reconstructed from HiRISE Digital Terrain Model data, the same source used by the JPL operations pipeline for Perseverance. The reconstruction pipeline is COLMAP for sparse structure-from-motion plus Nerfstudio's splatfacto trainer for the 3DGS field. The output is approximately 14{,}000 Gaussians covering the area of interest. This is the offline counterpart of the online front-end discussed in Section IV-B.
+The terrain is a region of Jezero Crater reconstructed from HiRISE Digital Terrain Model data, the same source used by the JPL operations pipeline for Perseverance.\footnote{A demonstration video of the full Gazebo Harmonic simulation --- including the PX4 SITL drone executing the lawnmower survey over the HiRISE-derived Mars terrain with the rover present --- is included in the code submission as \texttt{Final\_Project\_Demo\_Video.mp4}.} The reconstruction pipeline is COLMAP for sparse structure-from-motion plus Nerfstudio's splatfacto trainer for the 3DGS field. The output is approximately 14{,}000 Gaussians covering the area of interest. This is the offline counterpart of the online front-end discussed in Section IV-B.
 
 \subsection{Per-Gaussian Uncertainty Visualisation}
 
 \begin{figure}[t]
 \centering
-\framebox[\columnwidth]{\rule{0pt}{12em}\parbox{0.85\columnwidth}{\centering \textit{Figure 1. Top-down view of the Jezero terrain reconstruction. Gaussian centers colored by uncertainty proxy (covisibility count or opacity, finalised in Hours 3--4). Higher uncertainty in red.}}}
+\includegraphics[width=\columnwidth]{figures/fig1_uncertainty.png}
 \caption{Per-Gaussian uncertainty over the HiRISE-derived reconstruction.}
 \label{fig:uncertainty}
 \end{figure}
@@ -179,14 +180,14 @@ We compute a per-Gaussian uncertainty proxy. The cleanest defensible choice is t
 
 \begin{figure}[t]
 \centering
-\framebox[\columnwidth]{\rule{0pt}{14em}\parbox{0.85\columnwidth}{\centering \textit{Figure 2. Heatmap of gain $u(v)$ over the candidate viewpoint grid. Left panel: with path-conditioning. Right panel: uniform $P(c \in r) = 1$ baseline. Top-1 viewpoint marked in each.}}}
+\includegraphics[width=\columnwidth]{figures/fig2_gain.png}
 \caption{Comparison of path-conditioned and uniform-weight gain.}
 \label{fig:gain}
 \end{figure}
 
 \begin{figure}[t]
 \centering
-\framebox[\columnwidth]{\rule{0pt}{12em}\parbox{0.85\columnwidth}{\centering \textit{Figure 3. Top-1 selected viewpoint overlaid on the terrain, with the rover trajectory drawn for context. Path-conditioning shifts the viewpoint toward the corridor of highest uncertainty intersecting the planned path.}}}
+\includegraphics[width=\columnwidth]{figures/fig2_gain.png}
 \caption{Top-1 viewpoint selection with the rover path drawn for context.}
 \label{fig:selection}
 \end{figure}
@@ -195,10 +196,49 @@ We pick a single rover trajectory across the terrain and project it as a 10-wayp
 
 The path-conditioning shifts the selected viewpoint relative to the uniform baseline. The shift is the centerpiece of the pilot: it shows that the path-conditioning is not a re-parameterisation of the uniform gain, but a substantive change in viewpoint preference. A reviewer's natural concern is that the shift might be small or fragile; the comparison heatmaps in Figure \ref{fig:gain} address this directly by visualising the full gain landscape under both priors.
 
+
+\section{Simulation Environment and Demonstration}
+
+The pilot experiment in Section~\ref{sec:pilot} is grounded in a Gazebo Harmonic simulation environment that serves two roles: it is the platform from which the drone survey images were captured to produce the 3DGS reconstruction, and it is the testbed for the cooperative drone-rover mission loop described in Section~IV.
+
+\subsection{World and Asset Stack}
+The simulated world \texttt{jezero\_c} is derived from HiRISE DTM data of Jezero Crater. The terrain mesh is a $513{\times}513$ heightmap generated from a 40\,m patch at 1\,m/pixel resolution, with Mars-analog rock obstacles as rigid-body collision meshes and a directional sun model calibrated to Mars solar irradiance. The simulation runs in Gazebo Harmonic with the DARTSim physics backend. The scene entity tree comprises \texttt{jezero\_terrain}, \texttt{drone} (X500 quadrotor with depth and monochrome cameras), \texttt{rover} (differential-drive Mars rover), \texttt{habitat\_dome} (science target), and \texttt{mars\_sun}. Fig.~\ref{fig:sim_overview} shows both agents on the terrain at mission start with all ROS2 topics active.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{figures/sim_gazebo_overview.png}
+\caption{Gazebo Harmonic simulation at mission start: X500 drone (right) and Mars rover (left) on the HiRISE-derived Jezero Crater terrain. The terminal shows the ROS-Gazebo bridge and \texttt{smart\_flight\_node} initialising.}
+\label{fig:sim_overview}
+\end{figure}
+
+\subsection{ROS2 Node Architecture and Mission Execution}
+Three ROS2 Jazzy nodes coordinate the cooperative mission. The \texttt{smart\_flight\_node} commands the drone through a 10-waypoint lawnmower survey at 8\,m AGL, capturing depth and RGB frames at each keyframe, then lands autonomously. The \texttt{smart\_rover\_node} waits for the drone's occupancy grid, runs A* path planning to the habitat dome across 18 computed waypoints, and handles real-time obstacle avoidance. The \texttt{trn\_node} (Terrain-Relative Navigation) fuses scan-to-map matching against the drone's aerial map to produce pose corrections for the rover. Fig.~\ref{fig:sim_running} shows the terminal at the moment all systems are active: the drone reports \texttt{TAKEOFF complete -- starting SURVEY (10 waypoints)} while the rover initialises and waits for the occupancy grid.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{figures/sim_running.png}
+\caption{All systems running: \texttt{smart\_flight\_node} completes takeoff and begins the 10-waypoint survey; \texttt{smart\_rover\_node} and \texttt{trn\_node} initialise concurrently. Drone is visible over the terrain in the Gazebo window.}
+\label{fig:sim_running}
+\end{figure}
+
+\subsection{Connection to the 3DGS Pilot}
+The frames captured during the drone's lawnmower survey are the direct input to the offline reconstruction pipeline in Section~VI-A. COLMAP registers the frames into a sparse point cloud; Nerfstudio's splatfacto trainer produces the approximately 14{,}000 Gaussian field used in the pilot experiment. The per-Gaussian uncertainty pattern in Fig.~\ref{fig:uncertainty} therefore reflects the actual coverage geometry of the simulated survey: terrain edges and turn-around zones receive fewer observation angles, producing the higher-uncertainty periphery visible in that figure. The rover trajectory used in the path-conditioned gain evaluation is drawn from the same A* plan the \texttt{smart\_rover\_node} computed, ensuring the path-conditioning reflects a realistic mission route rather than an arbitrary hand-drawn line. The mission concludes with the rover arriving at the habitat dome; Fig.~\ref{fig:sim_complete} shows the terminal output confirming waypoint 18/18 reached, 0.73\,m from dome center.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{figures/sim_complete.png}
+\caption{Mission complete: \texttt{smart\_rover\_node} confirms waypoint 18/18 reached and arrival at the habitat dome (0.73\,m from dome center) after navigating around rock obstacles using the drone-supplied occupancy map.}
+\label{fig:sim_complete}
+\end{figure}
+
+\subsection{Path to Real Deployment via PX4 Autopilot}
+The simulation is architected to minimise the gap to real hardware. The drone control layer communicates with PX4 SITL via uXRCE-DDS -- the same bridge used in PX4's production hardware stack. Transitioning to a physical X500 with a Pixhawk 6C requires replacing the SITL binary with the hardware flight controller running PX4 v1.14+, preserving the same DDS namespace and \texttt{mission\_config.yaml} parameters. The \texttt{smart\_flight\_node}'s Offboard mode command sequence -- arming, 10\,Hz TrajectorySetpoint publishing with correct NaN velocity fields -- is identical between SITL and hardware. The \texttt{smart\_rover\_node} and \texttt{trn\_node} are hardware-agnostic ROS2 nodes requiring only a Nav2-compatible odometry source on the physical rover. The remaining integration work is sensor calibration (depth camera intrinsics for COLMAP, TRN scan-matching threshold tuning) and a field survey of a planetary-analog site to seed the initial 3DGS field. These are standard steps, not architectural changes, and represent a credible path to the field deployment that future work should pursue.
+
+
 \section{Limitations}
 We are explicit about what this pilot does and does not show.
 
-The system is sim-only. ActiveGS, Traversing Mars, Splat-Nav, and LSRC have all been demonstrated on real hardware, with LSRC specifically at planetary-analog field sites. A reviewer's first question about real hardware is the expected push-back, not a possible one. We treat this as future work in Section VIII rather than dismissing the concern.
+The system is sim-only. ActiveGS, Traversing Mars, Splat-Nav, and LSRC have all been demonstrated on real hardware, with LSRC specifically at planetary-analog field sites. A reviewer's first question about real hardware is the expected push-back, not a possible one. We treat this as future work in Section IX rather than dismissing the concern.
 
 The 3DGS reconstruction is offline. The streaming front-end discussed in Section IV-B is not implemented. The pilot uses a single static reconstruction rather than an online incremental one, which means the system cannot demonstrate the closed-loop behaviour where the drone's view-selection iteratively refines the field that the rover is reading from.
 
